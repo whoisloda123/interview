@@ -1,4 +1,4 @@
-package com.liucan.interview.interview;
+package com.liucan.interview;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
