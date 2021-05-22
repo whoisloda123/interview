@@ -132,6 +132,14 @@ condtion原理
 5）若是因signal被唤醒，就自旋获取锁；否则处理中断异常
  十二.读写锁实现原理
  https://www.toutiao.com/i6714450210241643019/?tt_from=weixin&utm_campaign=client_share&wxshare_count=1&timestamp=1621379437&app=news_article&utm_source=weixin&utm_medium=toutiao_ios&use_new_style=1&req_id=2021051907103701021207020508213DB6&share_token=CB9AE682-983C-4000-84C1-0A6EDF768EFC&group_id=6714450210241643019&wid=1621386976742
+
+ *  16.volatile
+ *      参考：https://www.cnblogs.com/chengxiao/p/6528109.html
+ *     a.轻量级锁
+ *     b.能保证共享变量对所有线程的可见性，当写一个volatile变量时，JMM会把该线程对应的本地内存中的变量强制刷新到主内存中去
+ *     c.禁止指令重排序优化
+ *     d.volatile对于单个的共享变量的读/写具有原子性，但是像num++这种复合操作，volatile无法保证其原子性,可以用原子锁
+
  * @author liucan
  * @version 19-1-20
  */
