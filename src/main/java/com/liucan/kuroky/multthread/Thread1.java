@@ -5,6 +5,23 @@ import org.springframework.stereotype.Component;
 
 /* *
  *
+ * 一线程中断
+ *   调用Thread.interrupted,只是设置一下中断状态，然后其他线程在wail，sleep的时候判断一下线程状态，然后抛出中断异常
+ * 二.java内存模型：
+ *      https://zhuanlan.zhihu.com/p/29881777
+ *      1.主内存与工作内存：线程对变量的所有操作（读取、赋值）都必须在工作内存中进行，而不能直接读写主内存中的变量
+ *      2.主内存与工作内存之间的具体交互协议，即一个变量如何从主内存拷贝到工作内存、如何从工作内存同步到主内存之间的实现细节
+ *          以下八种操作来完成
+ *              lock（锁定）,unlock（解锁）,read（读取）,write（写入）,load（载入）,assign（赋值)等
+ *      2.为了优化性能，会对指令进行重排序（编译器，cpu都会重拍序）
+ *      3.happens-before：
+ *          a.happens-before的概念来指定两个操作之间的执行顺序,两个操作可以在一个线程之内，也可以是在不同线程之间
+ *          b.可以通过happens-before关系向程序员提供跨线程的内存可见性保证
+ *          c.如果一个操作happens-before另一个操作，那么第一个操作的执行结果将对第二个操作可见，
+ *              而且第一个操作的执行顺序排在第二个操作之前(程序员视角)，
+ *              有可能会指令重排序（JVM视角）
+ *          d.具体规则:有6种
+ *      4.voatile内存屏障禁止重排序，内存屏障能够保证屏障之前的操作能够优先与屏障之后的操作
  *
  * 四.volatile
  * a.多线程同时访问一个对象时（主内存），每个执行的线程可以拥有该对象的一份拷贝（本地内存），而本地内存的操作会在一个时机(线程执行完毕)同步到主内存
@@ -18,19 +35,25 @@ import org.springframework.stereotype.Component;
  *      2.volatile则能按照一定的规律阻止指令重排序优化
  * e.volatile对于单个的共享变量的读/写具有原子性，但是像num++这种复合操作，volatile无法保证其原子性,可以用原子锁
  *
- * 五.synchronized
+ * 五.synchronized:https://cloud.tencent.com/developer/article/1465413
  *  1.synchronized锁定是一个对象，其他试图访问该对象synchronized方法或代码块会被锁住,而每一个对象都可以做为一个锁（Monitor锁）
  *  2.在普通方法前面，锁的是当前实例对象（其他的synchronized标志的方法也会被锁住,非synchronized的不会被锁住）
  *  3.在静态方法前面，锁的是整个类
  *  4.在方法块里面synchronized(object),锁的是括号里面的对象
  *  5.实现机制
+ *      a.jvm存放对象信息里面的对象头里面有 Mark Word区域（包含了synchronized状态，分代年龄，对象hashcode等）
+ *      b.synchronized状态包括：无状态，偏向锁，轻量级锁，重量级锁
  *      a.每个对象有个监视器锁（Monitor锁）
- *      b.Monitor被占用的时候其他线程会阻塞，进入执行命令MonitorEnter获取Monitor,退出执行MonitorExit释放Monitor
- *      c.notify/notifyAll和wait方法都依赖Monitor锁
- *      d.synchronized方法，和方法块是基本Monitor锁实现，执行时候进入获取锁，离开释放锁
- *      e.所以notify/notifyAll和wait方法都必须位于synchronized内，否者抛异常
+ *      c.notify/notifyAll和wait方法都依赖Monitor锁.synchronized方法，和方法块是基本Monitor锁实现，执行时候进入获取锁，离开释放锁
  *      f.wait()方法立即释放对象监视器，notify()/notifyAll()方法则会等待线程剩余代码执行完毕才会放弃对象监视器
- *
+ *  7.锁膨胀
+ *      a.偏向锁:减少统一线程获取锁的代价,线程再次请求锁时，获取锁的过程检查Mark Word区域锁标记位为偏向锁以及是否是当前线程，如果是则直接获取线程
+ *      b.轻量级锁:指当锁是偏向锁的时候，被另一个线程所访问，偏向锁就会升级为轻量级锁，其他线程会通过自旋的形式尝试获取锁，不会阻塞，提高性能。
+ *      c.重量级锁是指当锁为轻量级锁的时候，另一个线程虽然是自旋，但自旋不会一直持续下去，当自旋一定次数的时候，还没有获取到锁，就会进入阻塞，
+ *              该锁膨胀为重量级锁。重量级锁会让其他申请的线程进入阻塞，性能降低
+ *      d.自旋锁（无锁）:线程不会阻塞，不会释放cpu时间片，而一直循环等待，采用原子锁cas（compare and swap）方式
+ *  8.锁消除
+ *      a.除锁是虚拟机另外一种锁的优化,编译时，对运行上下文进行扫描，去除不可能存在竞争的锁
  * 六.线程同步
  *  2.sleep,yield,wait区别
  *      a.sleep后，不会释放当前锁，会释放cpu时间片，暂停线程，时间到线程处于可以调用状态
@@ -49,12 +72,6 @@ import org.springframework.stereotype.Component;
  *          1.悲观锁认为对于同一个数据操作其他线程会修改，一定要加锁：常用锁
  *          2.乐观锁认为对于同一个数据操作其他线程不会修改，不需要加锁：用自旋锁
  *      e.偏向锁/轻量级锁/重量级锁:指的是锁的状态，是针对synchronized的---synchronized锁的优化
- *      参考：https://www.jianshu.com/p/36eedeb3f912
- *          1.偏向锁:一段代码一直被一个线程所访问，该线程会自动获取锁（有个获取锁的过程）。降低获取锁的代价,无实际竞争，且将来只有第一个申请锁的线程会使用锁
- *          2.轻量级锁:指当锁是偏向锁的时候，被另一个线程所访问，偏向锁就会升级为轻量级锁，其他线程会通过自旋的形式尝试获取锁，不会阻塞，提高性能。
- *          3.重量级锁是指当锁为轻量级锁的时候，另一个线程虽然是自旋，但自旋不会一直持续下去，当自旋一定次数的时候，还没有获取到锁，就会进入阻塞，
- *              该锁膨胀为重量级锁。重量级锁会让其他申请的线程进入阻塞，性能降低
- *      e.自旋锁（无锁）:线程不会阻塞，不会释放cpu时间片，而一直循环等待，采用原子锁cas（compare and swap）方式
  *
  *  八.CAS和AQS
  *     1.CAS(compare and swap)，原子操作
@@ -92,14 +109,6 @@ import org.springframework.stereotype.Component;
  *   a.将status变量分为高16位读，低16位写，读写互斥，读共享，写互斥
  *   b.将status左移动获取写状态，右移动获取读状态，其他操作和ReentrantLock是一样的
  *   c.在非公平模式下，读操作，如果发现队列头部是有写线程，则会优先让写线程先获取，避免出现写线程饥饿（如果读获取到了，后面新的读锁可以一直获取到，写线程就很少有机会）
- *
- *  16.volatile
- *      参考：https://www.cnblogs.com/chengxiao/p/6528109.html
- *     a.轻量级锁
- *     b.能保证共享变量对所有线程的可见性，当写一个volatile变量时，JMM会把该线程对应的本地内存中的变量强制刷新到主内存中去
- *     c.禁止指令重排序优化
- *     d.volatile对于单个的共享变量的读/写具有原子性，但是像num++这种复合操作，volatile无法保证其原子性,可以用原子锁
-
  * @author liucan
  * @version 19-1-20
  */

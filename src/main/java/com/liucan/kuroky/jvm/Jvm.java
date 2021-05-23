@@ -155,18 +155,7 @@ public interface Jvm {
      *      3.Class.forName和ClassLoader.loaderClass区别
      *          Class.forName得到的class是已经初始化完成的，ClassLoader.loaderClass得到的class是还没有链接的
      *
-     *  43.java内存模型：
-     *      https://www.cnblogs.com/nexiyi/p/java_memory_model_and_thread.html
-     *      1.主内存与工作内存：线程对变量的所有操作（读取、赋值）都必须在工作内存中进行，而不能直接读写主内存中的变量
-     *      2.为了优化性能，会对指令进行重排序
-     *      3.happens-before：
-     *          a.happens-before的概念来指定两个操作之间的执行顺序,两个操作可以在一个线程之内，也可以是在不同线程之间
-     *          b.可以通过happens-before关系向程序员提供跨线程的内存可见性保证
-     *          c.如果一个操作happens-before另一个操作，那么第一个操作的执行结果将对第二个操作可见，
-     *              而且第一个操作的执行顺序排在第二个操作之前(程序员视角)，
-     *              有可能会指令重排序（JVM视角）
-     *          d.具体规则:有6种
-     *      4.voatile可防止指令重排序
+
      *
      *
      */
