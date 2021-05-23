@@ -3,30 +3,9 @@ package com.liucan.kuroky.multthread;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-/**
- * <p>
- * 一.线程：用户线程，守护线程（daemon线程）
- * 1.用户线程全部退出了，daemon线程也会自动退出
- * 2.thread.setDaemon(true)必须在thread.start()之前设置
- * 3.在Daemon线程中产生的新线程也是Daemon的
- * 4.守护线程应该永远不去访问固有资源，如文件、数据库，因为它会在任何时候甚至在一个操作的中间发生中断
- * 5.调用start方法的顺序不代表线程启动顺序
- * 6.多次start()一个线程会抛异常，因为线程状态已经变了
- * 7.线程状态：
- *      NEW 状态是指线程刚创建, 尚未启动
- *      RUNNABLE 状态是线程正在正常运行中,
- *      BLOCKED  这个状态下, 是在多个线程有同步操作的场景, 比如正在等待另一个线程的synchronized 块的执行释放,
- *          或者可重入的 synchronized块里别人调用wait() 方法, 也就是这里是线程在等待进入临界区
- *      WAITING  这个状态下是指线程拥有了某个锁之后, 调用了他的wait方法, 等待其他线程/锁拥有者调用 notify / notifyAll
- *      TIMED_WAITING  这个状态就是有限的(时间限制)的WAITING, 一般出现在调用wait(long)
- *      TERMINATED 这个状态下表示 该线程的run方法已经执行完毕了
- * <p
- * 二.sleep和yield区别
- * sleep线程处于阻塞状态，让出cpu时间片给其他线程执行，结束后才会转入就绪状态
- * yield是暂停线程，不会阻塞线程，让线程运行状态转入就绪状态，线程调度器可以继续执行
- * <p>
- * 三.suspend()、resume()和stop()已经过期不建议使用，因为调用后不会释放资源，容易造成死锁问题，改为用sleep和notify等待通知机制
- * <p>
+/* *
+ *
+ *
  * 四.volatile
  * a.多线程同时访问一个对象时（主内存），每个执行的线程可以拥有该对象的一份拷贝（本地内存），而本地内存的操作会在一个时机(线程执行完毕)同步到主内存
  * 所以程序在执行过程中，一个线程看到的变量并不一定是最新的
@@ -53,15 +32,10 @@ import org.springframework.stereotype.Component;
  *      f.wait()方法立即释放对象监视器，notify()/notifyAll()方法则会等待线程剩余代码执行完毕才会放弃对象监视器
  *
  * 六.线程同步
- *  1.在线程a里面调用Thread.currentThread()得到的线程未必是a的，是调用该函数的线程，如果是在run函数里面则是a
  *  2.sleep,yield,wait区别
  *      a.sleep后，不会释放当前锁，会释放cpu时间片，暂停线程，时间到线程处于可以调用状态
  *      b.yield后，不会释放当前锁，会释放cpu时间片，线程处于可以调度状态（ps：可能出现yield后，马上又被调用，完全取决于线程调度器）
  *      c.wait后，会释放当前锁，会释放cpu时间片，暂停当前线程，直到被notify/notifyAll通知
- *  3.interrupt
- *      1.不是马上中断线程，而在线程阻塞的时候将线程的中断标记设为true，并产生一个InterruptedException异常，这样让线程中断，
- *          如果线程没有阻塞则不起作用，只是将中断标记设置一下
- *      2.isInterrupted，判断中断标记是否为true
  *  4.ThreadLocal
  *      1.每个线程独有一份，和TreadLocal在哪个地方和有多少个对象没有关系，和里面的map有关系，ThreadLocal里面是保存的是map（当前线程对应key，对应value）
  *      2.想保存多个本地线程数据，就定义多个TreadLocal，因里面都是和Thread.currentThread操作有关系
@@ -82,57 +56,43 @@ import org.springframework.stereotype.Component;
  *              该锁膨胀为重量级锁。重量级锁会让其他申请的线程进入阻塞，性能降低
  *      e.自旋锁（无锁）:线程不会阻塞，不会释放cpu时间片，而一直循环等待，采用原子锁cas（compare and swap）方式
  *
- *      f.CAS和AQS
- *          参考：https://www.cnblogs.com/waterystone/p/4920797.html
- *          https://www.cnblogs.com/chengxiao/archive/2017/07/24/7141160.html
- *          https://blog.csdn.net/zhangdong2012/article/details/79983404
- *        1.CAS(compare and swap)，原子操作
- *          a.UnSafe类提供了硬件级别的原子操作，一般AtomicInteger等原子类都做了封装
- *        2.AQS(AbstractQueuedSynchronizer)
- *          a.是ReentrantLock、Semaphore，CountDownLatch等线程同步的基类，是构建锁和同步器的框架
- *          b.通过一个volatile的status状态变量和FIFO队列来实现
- *              1.队列里面保存线程的信息，头结点是获取锁的线程
- *              2.其他线程获取锁先通过同步状态status来判断是否可以获取锁（如ReentrantLock的status如果不是当前线程最多是1
+ *  八.CAS和AQS
+ *     1.CAS(compare and swap)，原子操作
+ *        a.UnSafe类提供了硬件级别的原子操作，一般AtomicInteger等原子类都做了封装
+ *     2.AQS(AbstractQueuedSynchronizer)
+ *        a.是ReentrantLock、Semaphore，CountDownLatch等线程同步的基类，是构建锁和同步器的框架
+ *        b.通过一个volatile的status状态变量和FIFO队列来实现
+ *           1.队列里面保存线程的信息，头结点是获取锁的线程
+ *           2.其他线程获取锁先通过同步状态status来判断是否可以获取锁（如ReentrantLock的status如果不是当前线程最多是1
  *                  如果是1，则不能获取锁除非是0），如果能获取则获取，否则构造队列节点放入尾部，然后将当前线程挂起
- *              3.释放锁时，释放同步状态status（如ReentrantLock将状态变为0），同时唤醒后继节点
- *              4.在写自定义同步器的时候只需重写tryAcquire，tryRelease，tryAcquireShared, tryReleaseShared几个方法，来决定同步状态的释放和获取即可
- *              5.有共享模式和独占模式：ReentrantLock独占模式，一次只有一个获取锁的线程接口，CountDownLatch共享模式，一次有多个获取锁的线程节点
- *              6.condition
- *              https://www.jianshu.com/p/4d4c7398e187
- *                  ReentrantLock里面的条件变量就是直接用aqs里面写好了的，
- *                  实现方式是，有个条件变量队列，保存调用wait后的线程，
- *
- *      d.CountDownLatch，Semaphore等线程同步类
+ *           3.释放锁时，释放同步状态status（如ReentrantLock将状态变为0），同时唤醒后继节点
+ *           4.在写自定义同步器的时候只需重写tryAcquire，tryRelease，tryAcquireShared, tryReleaseShared几个方法，来决定同步状态的释放和获取即可
+ *           5.有共享模式和独占模式：ReentrantLock独占模式，一次只有一个获取锁的线程接口，CountDownLatch共享模式，一次有多个获取锁的线程节点
+ *         c.aqs非公平锁和公平锁的实现方式和区别
+ *           1.非公平锁，lock的时候，会无视正在等待锁资源的队列里面是否有成员，而直接尝试一次获取，若不成功，则还是会进入AQS的CLH等待队列，然后阻塞，顺序等待唤醒，获取。
+ *           2.公平锁，lock的时候，则不能无视正在等待锁资源的队列里面的成员。
+ *    3.AQS源码流程：
+ *      a.讲的好：https://zhuanlan.zhihu.com/p/65349219
+ *      b.condtion原理
+ *      1）将当前线程封装成node且等待状态为CONDITION。
+ *      2）释放当前线程持有的锁，让下一个线程能获取锁。
+ *      3）加入到条件队列后，则阻塞当前线程，等待被唤醒。
+ *      4）如果是因signal被唤醒，则节点会从条件队列转移到等待队列。
+ *      5）若是因signal被唤醒，就自旋获取锁；否则处理中断异常
+ *  九.CountDownLatch，Semaphore等线程同步类
  *          CountDownLatch控制同时等待多少个线程执行结束后再进行，Semaphore可控制有多少个线程同时执行
  *
  *  八.Concurrent同步包各种同步数据结果
  *      参考：https://blog.csdn.net/defonds/article/details/44021605#t8
  *
- *  九.Unsafe类，不建议自己使用，除非很了解他，因为可以像c语言一样，使用指针，操作内存，释放内存容易出现问题
- *      也可以对线程进行挂起和恢复2
+ *  十.读写锁实现原理
+    https://www.toutiao.com/i6714450210241643019/?tt_from=weixin&utm_campaign=client_share&wxshare_count=1&timestamp
+   =1621379437&app=news_article&utm_source=weixin&utm_medium=toutiao_ios&use_new_style=1&req_id=202105190710370102120
+  7020508213DB6&share_token=CB9AE682-983C-4000-84C1-0A6EDF768EFC&group_id=6714450210241643019&wid=1621386976742
+ *   a.将status变量分为高16位读，低16位写，读写互斥，读共享，写互斥
+ *   b.将status左移动获取写状态，右移动获取读状态，其他操作和ReentrantLock是一样的
+ *   c.在非公平模式下，读操作，如果发现队列头部是有写线程，则会优先让写线程先获取，避免出现写线程饥饿（如果读获取到了，后面新的读锁可以一直获取到，写线程就很少有机会）
  *
- *  十.aqs非公平锁和公平锁的实现方式和区别
- *  https://blog.csdn.net/qwed070/article/details/76199082
- *   a.非公平锁，lock的时候，会无视正在等待锁资源的队列里面是否有成员，而直接尝试一次获取，若不成功，则还是会进入AQS的CLH等待队列，然后阻塞，顺序等待唤醒，获取。
- *   b.公平锁，lock的时候，则不能无视正在等待锁资源的队列里面的成员。
- *  十一.读写锁的实现？？
- *  十二.ReentrantLock源码实现
- *      a.
- *      b.Condition
- *
- *  十一.这个讲的好：https://zhuanlan.zhihu.com/p/65349219
-     await的流程
-
-await()：当前线程处于阻塞状态，直到调用signal()或中断才能被唤醒。
-condtion原理
-1）将当前线程封装成node且等待状态为CONDITION。
-2）释放当前线程持有的锁，让下一个线程能获取锁。
-3）加入到条件队列后，则阻塞当前线程，等待被唤醒。
-4）如果是因signal被唤醒，则节点会从条件队列转移到等待队列。
-5）若是因signal被唤醒，就自旋获取锁；否则处理中断异常
- 十二.读写锁实现原理
- https://www.toutiao.com/i6714450210241643019/?tt_from=weixin&utm_campaign=client_share&wxshare_count=1&timestamp=1621379437&app=news_article&utm_source=weixin&utm_medium=toutiao_ios&use_new_style=1&req_id=2021051907103701021207020508213DB6&share_token=CB9AE682-983C-4000-84C1-0A6EDF768EFC&group_id=6714450210241643019&wid=1621386976742
-
  *  16.volatile
  *      参考：https://www.cnblogs.com/chengxiao/p/6528109.html
  *     a.轻量级锁

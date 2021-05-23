@@ -5,7 +5,7 @@ package com.liucan.kuroky.datastructure;
  * @date 5/22/21
  */
 public interface DataStructure {
-    /**
+    /* *
      *
      *  20.各种数据集合
      *      参考：http://www.cnblogs.com/skywang12345/p/3323085.html

@@ -7,8 +7,6 @@ package com.liucan.kuroky.base;
 public interface Base {
     /* *
      *
-     *
-     *
      *   30.为何byte取值范围是[-128~127],而不是[-127~127]
      *      参考：https://blog.csdn.net/qq_23418393/article/details/57421688
      *      1.计算机里面是用补码进行数字运算
@@ -71,8 +69,6 @@ public interface Base {
      *          b.实现方式
      *              慢开始和拥塞避免
      *              慢慢的增加发送数据的大小
-     *
-     *
      *
      *  65.https工作流程,ssl协议，对称加密，非对称加密
      *  https://www.cnblogs.com/hai-blog/p/8311671.html
