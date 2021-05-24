@@ -1,6 +1,7 @@
 package com.liucan.kuroky.dubbo;
 
 /**
+ * dubbo spi
  * @author liucan
  * @date 5/22/21
  */

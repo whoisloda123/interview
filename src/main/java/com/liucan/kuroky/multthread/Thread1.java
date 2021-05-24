@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  *      2.主内存与工作内存之间的具体交互协议，即一个变量如何从主内存拷贝到工作内存、如何从工作内存同步到主内存之间的实现细节
  *          以下八种操作来完成
  *              lock（锁定）,unlock（解锁）,read（读取）,write（写入）,load（载入）,assign（赋值)等
- *      2.为了优化性能，会对指令进行重排序（编译器，cpu都会重拍序）
+ *      2.为了优化性能，会对指令进行重排序（编译器，cpu都会重拍序），单线程下没有问题，多线程就有可能有问题了
  *      3.happens-before：
  *          a.happens-before的概念来指定两个操作之间的执行顺序,两个操作可以在一个线程之内，也可以是在不同线程之间
  *          b.可以通过happens-before关系向程序员提供跨线程的内存可见性保证
@@ -59,9 +59,10 @@ import org.springframework.stereotype.Component;
  *      a.sleep后，不会释放当前锁，会释放cpu时间片，暂停线程，时间到线程处于可以调用状态
  *      b.yield后，不会释放当前锁，会释放cpu时间片，线程处于可以调度状态（ps：可能出现yield后，马上又被调用，完全取决于线程调度器）
  *      c.wait后，会释放当前锁，会释放cpu时间片，暂停当前线程，直到被notify/notifyAll通知
- *  4.ThreadLocal
- *      1.每个线程独有一份，和TreadLocal在哪个地方和有多少个对象没有关系，和里面的map有关系，ThreadLocal里面是保存的是map（当前线程对应key，对应value）
- *      2.想保存多个本地线程数据，就定义多个TreadLocal，因里面都是和Thread.currentThread操作有关系
+ *  4.ThreadLocal：https://zhuanlan.zhihu.com/p/102571059
+ *      1.ThreadLocal里面是保存的是map（当前线程对应的弱引用key，对应value）
+ *      2.内存泄漏的原因：弱引用key被jvm回收之后，key为空了，但是value还在，但是没有能够获取到value的地方了，导致内存泄露
+ *      3.为什么使用弱引用而不是强引用：如果没有手动删除，ThreadLocal不会被回收，导致Entry内存泄漏
  * 七.锁分类
  *      a.公平锁/非公平锁：是否按照申请的顺序来获得锁,通过ReentrantLock构造函数来
  *          1.ReentrantLock构造函数来制定

@@ -5,19 +5,19 @@ import java.util.concurrent.*;
 /**
  * 一.ArrayBlockingQueue和LinkedBlockingQueue
  * https://blog.csdn.net/qq_35181209/article/details/77434378
- * a.ArrayBlockingQueue,一个ReentrantLock+同一个ReentrantLock对应的2个conditional
- * b.LinkedBlockingQueue,2个ReentrantLock（put lock和 take lock）+对应的conditional,AtomicInteger来记录队列大小
+ *  a.ArrayBlockingQueue,一个ReentrantLock+同一个ReentrantLock对应的2个conditional
+ *  b.LinkedBlockingQueue,2个ReentrantLock（put lock和 take lock）+对应的conditional,AtomicInteger来记录队列大小
  *   入队（操作尾部）和出队（操作头部）不相关联，没有必要用2个锁，提高性能
  * 二.DelayQueue
- * a.DelayQueue队列中每个元素都有个过期时间，并且队列是个优先级队列，当从队列获取元素时候，只有过期元素才会出队列
- * b.通过Condition的await
+ *  a.DelayQueue队列中每个元素都有个过期时间，并且队列是个优先级队列，当从队列获取元素时候，只有过期元素才会出队列
+ *  b.通过Condition的await
  * 三.LinkedBlockingDeque
- * a.和LinkedBlockingQueue差不多，只是一个双链表
+ *  a.和LinkedBlockingQueue差不多，只是一个双链表
  * 四.SynchronousQueue
- * a.https://zhuanlan.zhihu.com/p/29227508
- * b.put的时候必须等待take，take的时候必须等待put，里面没有保存数据的队列，直接在生产者和消费者之间传递，
- * c.公平策略下采用队列TransferQueue来实现，找到队列前面的线程，公平策略下采用栈TransferStack来实现，通过cas来实现
- * d.Executors.newCachedThreadPool()里面的阻塞队列就是用的这个
+ *  a.https://zhuanlan.zhihu.com/p/29227508
+ *  b.put的时候必须等待take，take的时候必须等待put，里面没有保存数据的队列，直接在生产者和消费者之间传递，
+ *  c.公平策略下采用队列TransferQueue来实现，找到队列前面的线程，公平策略下采用栈TransferStack来实现，通过cas来实现
+ *  d.Executors.newCachedThreadPool()里面的阻塞队列就是用的这个
  *
  * @author liucan
  */
