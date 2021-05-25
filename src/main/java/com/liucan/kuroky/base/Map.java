@@ -11,6 +11,8 @@ package com.liucan.kuroky.base;
  *  d.1.7hashmap会出现在多线程扩容情况下造成循环链表(采用头插发翻转链表)，get的时候一直卡主
  *    1.8是用 head 和 tail 来保证链表的顺序和之前一样，这样就不会产生循环引用
  *    都会出现数据被覆盖的情况
+ * 2.ConcurrentHashMap
+ *  https://zhuanlan.zhihu.com/p/237295675
  * @author liucan
  * @date 5/24/21
  */
