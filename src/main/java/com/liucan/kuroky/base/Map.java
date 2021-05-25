@@ -13,6 +13,7 @@ package com.liucan.kuroky.base;
  *    都会出现数据被覆盖的情况
  * 2.ConcurrentHashMap
  *  https://zhuanlan.zhihu.com/p/237295675
+ *  https://zhuanlan.zhihu.com/p/369568763
  * @author liucan
  * @date 5/24/21
  */
