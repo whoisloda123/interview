@@ -6,18 +6,12 @@ package com.liucan.kuroky.jvm;
  */
 public interface Jvm {
     /* *
-     *
-     *  19.JMM（java内存模型）
-     *      有时间了解一下？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？
-     *
-
-
-     *
-
-     *
-     *
-
-     *
+     *  1.为何jvm最大内存不建议大于32G
+     *   a.设置最大内存小于32G采用指针压缩机制，将指针压缩为4个字节（64位8个字节，32位4个字节）
+     *   b.4个字节最大可表示2的32次方4个G的对象数量，而一个对象默认按照8个字节对齐，则最大可表示32G的对象
+     *   c.如果jvm最大内存大于32G，则会表示不了，不采用指针压缩机制，这样导致指针其实也占内存
+     *  2.java对象内存布局
+     *  https://blog.csdn.net/m0_37670016/article/details/112799155
      *   31.jvm内存区域分配和gc（garbage collection）机制
      *      参考：https://www.cnblogs.com/zymyes2020/p/9052651.html
      *      https://www.cnblogs.com/xiaoxi/p/6486852.html
