@@ -110,6 +110,12 @@ import org.springframework.stereotype.Component;
  *   a.将status变量分为高16位读，低16位写，读写互斥，读共享，写互斥
  *   b.将status左移动获取写状态，右移动获取读状态，其他操作和ReentrantLock是一样的
  *   c.在非公平模式下，读操作，如果发现队列头部是有写线程，则会优先让写线程先获取，避免出现写线程饥饿（如果读获取到了，后面新的读锁可以一直获取到，写线程就很少有机会）
+ *
+ * 十一.cas的aba问题
+ * https://zhuanlan.zhihu.com/p/87908087
+ * a.线程1，2同时拿到一样A值，1线程执行快cas将改成了B，又换成了A，2线程执行慢在cas的是否发现值还是a，不知道A值其实已经被变过了
+ * b.像银行转账一样会有问题，可以用AtomicStampedReference，获取用mysql乐观锁加版本号
+ *
  * @author liucan
  * @version 19-1-20
  */
