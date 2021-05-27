@@ -52,8 +52,8 @@ import org.springframework.stereotype.Component;
  *      c.重量级锁是指当锁为轻量级锁的时候，另一个线程虽然是自旋，但自旋不会一直持续下去，当自旋一定次数的时候，还没有获取到锁，就会进入阻塞，
  *              该锁膨胀为重量级锁。重量级锁会让其他申请的线程进入阻塞，性能降低
  *      d.自旋锁（无锁）:线程不会阻塞，不会释放cpu时间片，而一直循环等待，采用原子锁cas（compare and swap）方式
- *  8.锁消除
- *      a.除锁是虚拟机另外一种锁的优化,编译时，对运行上下文进行扫描，去除不可能存在竞争的锁
+ *  8.锁消除:除锁是虚拟机另外一种锁的优化,编译时，对运行上下文进行扫描，去除不可能存在竞争的锁
+ *  9.锁粗化：锁粗化指的是有很多操作都是对同一个对象进行加锁，就会把锁的同步范围扩展到整个操作序列之外
  * 六.线程同步
  *  2.sleep,yield,wait区别
  *      a.sleep后，不会释放当前锁，会释放cpu时间片，暂停线程，时间到线程处于可以调用状态
@@ -115,7 +115,8 @@ import org.springframework.stereotype.Component;
  * https://zhuanlan.zhihu.com/p/87908087
  * a.线程1，2同时拿到一样A值，1线程执行快cas将改成了B，又换成了A，2线程执行慢在cas的是否发现值还是a，不知道A值其实已经被变过了
  * b.像银行转账一样会有问题，可以用AtomicStampedReference，获取用mysql乐观锁加版本号
- *
+ * 十二.interview
+ * https://www.toutiao.com/i6966563726115799585/?tt_from=weixin&utm_campaign=client_share&wxshare_count=1&timestamp=1622073038&app=news_article&utm_source=weixin&utm_medium=toutiao_ios&use_new_style=1&req_id=2021052707503701021207008633286ACF&share_token=1B72304C-E596-4EB3-B339-CF429CDD9BBE&group_id=6966563726115799585&wid=1622125496351
  * @author liucan
  * @version 19-1-20
  */
