@@ -7,10 +7,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @author root
  */
 @SpringBootApplication
-public class InterviewApplication {
+public class KurokyApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(InterviewApplication.class, args);
+		SpringApplication.run(KurokyApplication.class, args);
 	}
 
 }

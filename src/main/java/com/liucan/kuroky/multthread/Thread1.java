@@ -6,7 +6,8 @@ import org.springframework.stereotype.Component;
 /* *
  *
  * 一线程中断
- *   调用Thread.interrupted,只是设置一下中断状态，然后其他线程在wail，sleep的时候判断一下线程状态，然后抛出中断异常
+ *   a.调用Thread.interrupt,只是设置一下中断状态，然后其他线程在执行的判断一下线程状态，然后抛出中断异常
+ *   b.对应sleep,join等方法会直接抛出中断异常，然后清除中断状态
  * 二.java内存模型：
  *      https://zhuanlan.zhihu.com/p/29881777
  *      1.主内存与工作内存：线程对变量的所有操作（读取、赋值）都必须在工作内存中进行，而不能直接读写主内存中的变量
