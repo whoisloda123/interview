@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
  * 一线程中断
  *   a.调用Thread.interrupt,只是设置一下中断状态，然后其他线程在执行的判断一下线程状态，然后抛出中断异常
  *   b.对应sleep,join等方法会直接抛出中断异常，然后清除中断状态
- * 二.java内存模型：
+ * 二.java内存模型：后续还要好好看下
  *      https://zhuanlan.zhihu.com/p/29881777
  *      1.主内存与工作内存：线程对变量的所有操作（读取、赋值）都必须在工作内存中进行，而不能直接读写主内存中的变量
  *      2.主内存与工作内存之间的具体交互协议，即一个变量如何从主内存拷贝到工作内存、如何从工作内存同步到主内存之间的实现细节
@@ -28,13 +28,14 @@ import org.springframework.stereotype.Component;
  * a.多线程同时访问一个对象时（主内存），每个执行的线程可以拥有该对象的一份拷贝（本地内存），而本地内存的操作会在一个时机(线程执行完毕)同步到主内存
  * 所以程序在执行过程中，一个线程看到的变量并不一定是最新的
  * b.轻量级锁
- * c.能保证共享变量对所有线程的可见性，当写一个volatile变量时，JMM会把该线程对应的本地内存中的变量强制刷新到主内存中去
+ * c.能保证共享变量对所有线程的可见性，当写一个volatile变量时，JMM会把该线程对应的本地内存中的变量强制刷新到主内存中去，即使不是volatiole修饰的cpu也会在空闲时刷新主存这个
  * 保证所有线程对该变量的可见性
  * d.禁止指令重排序优化:
  *      1.重排序优化：指编译器和处理器为了优化程序性能而对指令序列进行排序的一种手段
  *          可能会对代码的执行顺序重新排序，但是不会影响结果，单线程不会出现问题，但是多线程就无法保证了
  *      2.volatile则能按照一定的规律阻止指令重排序优化
  * e.volatile对于单个的共享变量的读/写具有原子性，但是像num++这种复合操作，volatile无法保证其原子性,可以用原子锁
+ * f.volatile修饰数组或引用对象，不能够保证对其属性的可见性
  *
  * 五.synchronized:https://cloud.tencent.com/developer/article/1465413
  *  1.synchronized锁定是一个对象，其他试图访问该对象synchronized方法或代码块会被锁住,而每一个对象都可以做为一个锁（Monitor锁）
@@ -117,7 +118,9 @@ import org.springframework.stereotype.Component;
  * a.线程1，2同时拿到一样A值，1线程执行快cas将改成了B，又换成了A，2线程执行慢在cas的是否发现值还是a，不知道A值其实已经被变过了
  * b.像银行转账一样会有问题，可以用AtomicStampedReference，获取用mysql乐观锁加版本号
  * 十二.interview
- * https://www.toutiao.com/i6966563726115799585/?tt_from=weixin&utm_campaign=client_share&wxshare_count=1&timestamp=1622073038&app=news_article&utm_source=weixin&utm_medium=toutiao_ios&use_new_style=1&req_id=2021052707503701021207008633286ACF&share_token=1B72304C-E596-4EB3-B339-CF429CDD9BBE&group_id=6966563726115799585&wid=1622125496351
+ * https://www.toutiao.com/i6966563726115799585/?tt_from=weixin&utm_campaign=client_share&wxshare_count=
+ * 1&timestamp=1622073038&app=news_article&utm_source=weixin&utm_medium=toutiao_ios&use_new_style=1&req_id=
+ * 2021052707503701021207008633286ACF&share_token=1B72304C-E596-4EB3-B339-CF429CDD9BBE&group_id=6966563726115799585&wid=1622125496351
  * @author liucan
  * @version 19-1-20
  */

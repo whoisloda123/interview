@@ -16,7 +16,7 @@ import java.util.concurrent.*;
  * 四.SynchronousQueue
  *  a.https://zhuanlan.zhihu.com/p/29227508
  *  b.put的时候必须等待take，take的时候必须等待put，里面没有保存数据的队列，直接在生产者和消费者之间传递，
- *  c.公平策略下采用队列TransferQueue来实现，找到队列前面的线程，公平策略下采用栈TransferStack来实现，通过cas来实现
+ *  c.公平策略下采用队列TransferQueue来实现，put找到队列前面的take线程匹配，公平策略下采用栈TransferStack来实现，和公平实现差不多，只是找到栈顶的匹配
  *  d.Executors.newCachedThreadPool()里面的阻塞队列就是用的这个
  *
  * @author liucan
