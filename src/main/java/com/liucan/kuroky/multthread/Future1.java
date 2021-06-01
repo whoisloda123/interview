@@ -8,6 +8,7 @@ import java.util.concurrent.FutureTask;
  * Future用于异步等待线程执行结果
  * FutureTask.get()是一个阻塞的方法，直到运行完成之后，返回线程执行的结果
  * set()方法会通知get方法会唤醒线程
+ * FutureTask源码看下---------------------------------------------------------------
  *
  * @author liucan
  * @version 19-3-5

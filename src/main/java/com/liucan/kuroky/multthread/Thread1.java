@@ -38,10 +38,6 @@ import org.springframework.stereotype.Component;
  * f.volatile修饰数组或引用对象，不能够保证对其属性的可见性
  *
  * 五.synchronized:https://cloud.tencent.com/developer/article/1465413
- *  1.synchronized锁定是一个对象，其他试图访问该对象synchronized方法或代码块会被锁住,而每一个对象都可以做为一个锁（Monitor锁）
- *  2.在普通方法前面，锁的是当前实例对象（其他的synchronized标志的方法也会被锁住,非synchronized的不会被锁住）
- *  3.在静态方法前面，锁的是整个类
- *  4.在方法块里面synchronized(object),锁的是括号里面的对象
  *  5.实现机制
  *      a.jvm存放对象信息里面的对象头里面有 Mark Word区域（包含了synchronized状态，分代年龄，对象hashcode等）
  *      b.synchronized状态包括：无状态，偏向锁，轻量级锁，重量级锁
