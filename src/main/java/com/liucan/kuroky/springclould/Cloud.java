@@ -22,5 +22,7 @@ public interface Cloud {
      *          3.实例化完成后，会填充属性，初始化
      * 2.微服务注册中心
      * https://mp.weixin.qq.com/s/YDHk8uwN8VAkt8NXEs4lRg
+     *
+     * 3.could hystrix:https://zhuanlan.zhihu.com/p/150889569
      */
 }

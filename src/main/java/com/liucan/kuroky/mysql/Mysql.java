@@ -227,6 +227,6 @@ public interface Mysql {
      *      b.master节点上面记录的binlog-记录了所有操作，从数据库启动一个io线程复制binlog到从
      c.通过binlog传到中继日志里面
      d.半同步，异步，同步
-     *
+     *  64.日志类型：https://www.cnblogs.com/myseries/p/10728533.html
      */
 }
