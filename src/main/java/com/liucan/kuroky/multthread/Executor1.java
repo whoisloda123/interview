@@ -34,7 +34,13 @@ import java.util.concurrent.*;
  *  3.可以设置thread的UncaughtExceptionHandler
  *
  * 五.这个线程池总结的好-必须看https://zhuanlan.zhihu.com/p/73990200
- *
+ * 六.ScheduledThreadPoolExecutor
+ * https://zhuanlan.zhihu.com/p/214234400
+ *  1.基于ThreadPoolExecutor来实现的
+ *  2.重写FutureTask的run方法，在执行完任务后，计算下一次执行时，从写将当前任务放入队列中
+ *  3.队列是延时队列，基于小顶堆来排序
+ *  4.scheduleAtFixedRate以固定的间隔来执行任务，如果时间到了上个没有执行完成，会等上一个任务执行完，
+ *  5.scheduleWithFixedDelay以固定延迟来执行，等上个任务执行完后，隔多少时间执行
  * @author liucan
  * @version 19-3-4
  */
