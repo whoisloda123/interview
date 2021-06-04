@@ -41,6 +41,8 @@ import java.util.concurrent.*;
  *  3.队列是延时队列，基于小顶堆来排序
  *  4.scheduleAtFixedRate以固定的间隔来执行任务，如果时间到了上个没有执行完成，会等上一个任务执行完，
  *  5.scheduleWithFixedDelay以固定延迟来执行，等上个任务执行完后，隔多少时间执行
+ *
+ *  https://blog.csdn.net/w306026355/article/details/109707269
  * @author liucan
  * @version 19-3-4
  */
