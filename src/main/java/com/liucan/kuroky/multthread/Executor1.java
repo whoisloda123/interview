@@ -43,6 +43,11 @@ import java.util.concurrent.*;
  *  5.scheduleWithFixedDelay以固定延迟来执行，等上个任务执行完后，隔多少时间执行
  *
  *  https://blog.csdn.net/w306026355/article/details/109707269
+ *
+ * 七.ForkJoinPoll
+ * https://cloud.tencent.com/developer/article/1704658
+ *  1.采用分治法，一个任务可以划分为多个任务，然后将多个任务分别执行的结果合并
+ *  2.每个任务有有个队列，空闲线程会去其他任务队列里面取任务来执行
  * @author liucan
  * @version 19-3-4
  */
@@ -88,6 +93,45 @@ public class Executor1 {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        ForkJoinPool forkJoinPool = new ForkJoinPool();
+        ForkJoinTask<Integer> submit = forkJoinPool.submit(new CalculateTask(1, 1000));
+        try {
+            Integer integer = submit.get();
+            System.out.println(integer);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
     }
 
+    public static class CalculateTask extends RecursiveTask<Integer> {
+        private static final long serialVersionUID = 1L;
+        private static final int THRESHOLD = 49;
+        private final int start;
+        private final int end;
+
+        public CalculateTask(int start, int end) {
+            this.start = start;
+            this.end = end;
+        }
+
+        @Override
+        protected Integer compute() {
+            if (end - start <= THRESHOLD) {
+                int result = 0;
+                for (int i = start; i <= end; i++) {
+                    result += i;
+                }
+                return result;
+            } else {
+                int middle = (start + end) / 2;
+                CalculateTask firstTask = new CalculateTask(start, middle);
+                CalculateTask secondTask = new CalculateTask(middle + 1, end);
+                invokeAll(firstTask,secondTask);
+                return firstTask.join() + secondTask.join();
+            }
+        }
+    }
 }
