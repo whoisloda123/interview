@@ -1,5 +1,7 @@
 package com.liucan.kuroky.multthread;
 
+import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.FutureTask;
 
 /**
@@ -30,5 +32,12 @@ public class Future1 {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        CompletableFuture<Integer> completableFuture1 = CompletableFuture.supplyAsync(() -> 1)
+                .thenApply(e -> e + 1)
+                .exceptionally(throwable -> -1);
+
+        CompletableFuture<Integer> completableFuture2 = CompletableFuture.supplyAsync(() -> 2);
+        CompletableFuture<Integer> future = completableFuture2.thenCombine(completableFuture1, Integer::sum);
+        Integer join = future.join();
     }
 }
