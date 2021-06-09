@@ -6,6 +6,7 @@ package com.liucan.kuroky.datastructure;
  */
 public interface DataStructure {
     /* *
+     *  1数据结构：可视化网站，可看到动画效果：https://www.cs.usfca.edu/~galles/visualization/Algorithms.html
      *
      *  20.各种数据集合
      *      参考：http://www.cnblogs.com/skywang12345/p/3323085.html

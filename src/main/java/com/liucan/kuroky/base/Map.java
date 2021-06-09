@@ -23,6 +23,7 @@ package com.liucan.kuroky.base;
  *  d.synchronized锁住当前桶，插入到链表或红黑树尾部，如果链表长度大于8则会转换为红黑树
  *  e.看是否需要扩容，如果当前正在扩容，则加入到扩容里面，和其他线程一起扩容（会根据cpu数和桶大小来平均分给每个线程处理扩容桶数，默认最小是 16）
  * 二.get不需要锁，因为value是volatile类型
+ * 三.获取size的实现方式类似于LongAdder实现方式，比CAS效率要高一些
  * @author liucan
  * @date 5/24/21
  *

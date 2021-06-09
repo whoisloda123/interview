@@ -3,6 +3,8 @@ package com.liucan.kuroky.multthread;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.atomic.LongAdder;
+
 /* *
  *
  * 一线程中断
@@ -95,8 +97,15 @@ import org.springframework.stereotype.Component;
  *      3）加入到条件队列后，则阻塞当前线程，等待被唤醒。
  *      4）如果是因signal被唤醒，则节点会从条件队列转移到等待队列。
  *      5）若是因signal被唤醒，就自旋获取锁；否则处理中断异常
- *  九.CountDownLatch，Semaphore等线程同步类
- *          CountDownLatch控制同时等待多少个线程执行结束后再进行，Semaphore可控制有多少个线程同时执行
+ *    4.CAS和LongAdder
+ *       https://zhuanlan.zhihu.com/p/269240636
+ *     a.在高并发情况下LongAdder效率比CAS要快很多，因为CAS多个线程在同时竞争一个对象，而LongAdder竞争多个对象
+ *     b.LongAdder里面有base变量和Cell数组，当没有发生竞争直接cas更新base，否者创建长度为2的cell数组，hash找到对应数组index，cas新增cell[index]里面的个数
+ *     c.如果发送hash冲突则对hash值rehash
+ *     d.扩容数组不能超过最大cpu数，因为真正最大的并发数就是cpu数，大小就是base和cell数组里面个数加起来
+ *     e.ConcurrentHashMap里面计算总数和LongAdder实现方式差不多
+ *
+ *  九.CountDownLatch，Semaphore等线程同步类CountDownLatch控制同时等待多少个线程执行结束后再进行，Semaphore可控制有多少个线程同时执行
  *
  *  八.Concurrent同步包各种同步数据结果
  *      参考：https://blog.csdn.net/defonds/article/details/44021605#t8
@@ -113,10 +122,12 @@ import org.springframework.stereotype.Component;
  * https://zhuanlan.zhihu.com/p/87908087
  * a.线程1，2同时拿到一样A值，1线程执行快cas将改成了B，又换成了A，2线程执行慢在cas的是否发现值还是a，不知道A值其实已经被变过了
  * b.像银行转账一样会有问题，可以用AtomicStampedReference，获取用mysql乐观锁加版本号
+ *
  * 十二.interview
  * https://www.toutiao.com/i6966563726115799585/?tt_from=weixin&utm_campaign=client_share&wxshare_count=
  * 1&timestamp=1622073038&app=news_article&utm_source=weixin&utm_medium=toutiao_ios&use_new_style=1&req_id=
  * 2021052707503701021207008633286ACF&share_token=1B72304C-E596-4EB3-B339-CF429CDD9BBE&group_id=6966563726115799585&wid=1622125496351
+ *
  * @author liucan
  * @version 19-1-20
  */
@@ -161,6 +172,11 @@ public class Thread1 {
 
         tl.set("1");
         tl.get();
+
+        LongAdder longAdder = new LongAdder();
+        longAdder.add(1);
+        longAdder.add(2);
+        long sum = longAdder.sum();
     }
 
     private void doWait() {
