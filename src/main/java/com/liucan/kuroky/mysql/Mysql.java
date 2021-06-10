@@ -61,7 +61,7 @@ public interface Mysql {
      *       g.总结
      *         1.利用MVCC实现一致性非锁定读，保证同一个事务中多次读取相同的数据返回的结果是一样的，解决了不可重复读的问题
      *         2.利用Gap Locks和Next-Key可以阻止其它事务在锁定区间内插入数据，因此解决了幻读问题
-     *
+     *      https://www.php.cn/mysql-tutorials-460111.html
      *  40.B-tree，B-plus-tree
      *      https://www.cnblogs.com/vincently/p/4526560.html
      *      a.B-tree:升级版的二叉查找树，在二叉查找树的基础上，每个节点可以包含2个以上的key，且里面的key也是顺序的
@@ -162,10 +162,10 @@ public interface Mysql {
      d.半同步，异步，同步
 
      * 64.日志类型：https://www.cnblogs.com/myseries/p/10728533.html
-     *  a.bin日志
-     *  b.中继日志
-     *  c.回滚日志
-     *  d.慢查询日志
-     *  e.重做日志
+     *  a.二进制日志（bin log）：用于记录任何修改数据库内容的语句，用于主从同步的
+     *  b.中继日志（relay log）：和bin日志一样的，只是从数据库用来同步bin日志的
+     *  c.回滚日志（undo log）：保证事务的原子性，用于实现事务
+     *  d.重做日志（redo log）：确保事务的持久性，用于在执行事务中崩溃，重启后恢复或回滚数据
+     *  e.慢查询日志（slow query log）：记录查询时间大于设置的时间的慢查询日志
      */
 }
