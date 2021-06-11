@@ -8,6 +8,10 @@ public interface Mysql {
     /* *
      *  1.回表查询:根据在辅助索引树中获取的主键id，到主键索引树检索数据的过程称回表查询
      *
+     *  2.checkpoint机制（每隔一段时间检测）
+     *   a.当redo log重做日志不可用（事务已经持久化成功）时会直接删除
+     *   b.当缓冲池不够用是，会将缓冲落盘
+     *
      *  22.为何不推荐使用外建
      *     https://www.zhihu.com/question/39062169
      *      a.外键还会因为需要请求对其他表内部加锁而容易出现死锁情况
@@ -15,45 +19,31 @@ public interface Mysql {
      *      c.数据库需要维护外键的内部管理
      *
      *  35.mysql事务(innodb),mysql的引擎中只有innodb支持事务
-     *      参考：https://blog.csdn.net/w_linux/article/details/79666086、
-     *      https://www.cnblogs.com/cjsblog/p/8365921.html
      *      a.4大特征(ACID)：原子性（A）一致性（C）隔离性（I）持久性（D）
-     *      c.隔离性（用于在并发事务执行的时候，如果串行的话，不用隔离）
      *          4个隔离级别
      *              1.读未提交（read uncommitted）
-     *                  事务A未提交的数据，事务B可以读取到，此种方法会有脏数据
-     *                  隔离级别最低，这种级别一般是在理论上存在，数据库隔离级别一般都高于该级别
-     *              2.读已提交（read committed）
-     *                  事务A提交了数据，事务才B可以读取到，此种方法没有脏数据，但会出现重复读取的时候，可能结果已经变了
-     *              3.可重复读（repeatable read）
-     *                  事务A和事务B，事务A提交之后的数据，事务B读取不到，不管A事务是否committed了，重复读取都是第一次，
-     *                  对方提交之后的数据，我还是读取不到，不可重复读重点在于update和delete
-     *                  但是会出现幻像读，就是读取到结果，出现新增，如范围查询，结果变多了
-     *                  MySQL默认级别
-     *              4.串行化（serializable）
-     *                  事务A和事务B，事务A在操作数据库时，事务B只能排队等待
-     *                  这种隔离级别很少使用，吞吐量太低，用户体验差
-     *                  可以避免“幻像读”，每一次读取的都是数据库中真实存在数据，事务A与事务B串行，而不并发
-     *                  幻读的重点在于insert
+     *              2.读已提交（read committed） 事务A提交了数据，事务才B可以读取到，此种方法没有脏数据，但会出现重复读取的时候，可能结果已经变了
+     *              3.可重复读（repeatable read）  但是会出现幻像读，就是读取到结果，出现新增，如范围查询，结果变多了 MySQL默认级别
+     *              4.串行化（serializable） 可以避免“幻像读”，每一次读取的都是数据库中真实存在数据，事务A与事务B串行，而不并发
      *       d.mvcc(多版本并发控制)
-     *       https://www.cnblogs.com/chinesern/p/7592537.html
-     *       https://blog.csdn.net/w2064004678/article/details/83012387
-     *          1.解决不可重复读
-     *          2.每一行多了创建事务版本号和删除事务版本号
+     *         https://zhuanlan.zhihu.com/p/364331468
+     *          1.解决不可重复读和可重复读，每一行多了创建事务版本号和删除事务版本号和回滚指针
+     *          2.通过undo log和read view来实现
+     *            a.undo logs保存事务执行过程用来回滚和一致性查询
+     *            b.read view保存所有还未执行完的事务id，用来快照读和当前读（被访问的tx_id是否在read view里面）
      *          3.过程
-     *             insert-当前的A事务-create_version=1，delete_version=null
-     *             update-新插入一行B事务-create_version=2,delete_version=null 同时A事务-delete_version=2
-     *             delete 最新的一行C事务-create_version=2,delete_version=3
-     *             select 如何查找出A事务的数据
+     *             a.insert-当前的A事务-create_version=1，delete_version=null
+     *             b.update-新插入一行B事务-create_version=2,delete_version=null 同时A事务-delete_version=2
+     *             d.delete 最新的一行C事务-create_version=2,delete_version=3
+     *             e.select 如何查找出A事务的数据
      *                 a.创建版本小于等于当前版本 create_version <= 1，确保读取的行的是在当前事务版本之前的
      *                 b.删除版本大于等于当前版本 delete_version >=1,确保事务之前行没有被删除
-     *
+     *             e.而回滚指针是执行上一个版本（undo logs）形成引用链条
      *       e.快照读和当前读
-     *          快照读：读取的是快照版本，也就是历史版本
-     *          当前读：读取的是最新版本
+     *          快照读：读取的是快照版本（只在第一次通过read view获取最新的版本），也就是历史版本，可重复读实现
+     *          当前读：读取的是最新版本（每次都是通过read view获取最新的版本）,不可重复读实现
      *          普通的SELECT就是快照,UPDATE、DELETE、INSERT、SELECT ...  LOCK IN SHARE MODE、SELECT ... FOR UPDATE是当前读
      *          Consistent read（一致性读）是READ COMMITTED和REPEATABLE READ隔离级别下普通SELECT语句默认的模式。
-     *          一致性读不会给它所访问的表加任何形式的锁，因为都是读取快照版本，因此其它事务可以同时并发的修改它们
      *       f.锁
      *          Record Locks（记录锁）：在索引记录上加锁
      *          Gap Locks（间隙锁）：在索引记录之间加锁
@@ -61,7 +51,7 @@ public interface Mysql {
      *       g.总结
      *         1.利用MVCC实现一致性非锁定读，保证同一个事务中多次读取相同的数据返回的结果是一样的，解决了不可重复读的问题
      *         2.利用Gap Locks和Next-Key可以阻止其它事务在锁定区间内插入数据，因此解决了幻读问题
-     *      https://www.php.cn/mysql-tutorials-460111.html
+     *
      *  40.B-tree，B-plus-tree
      *      https://www.cnblogs.com/vincently/p/4526560.html
      *      a.B-tree:升级版的二叉查找树，在二叉查找树的基础上，每个节点可以包含2个以上的key，且里面的key也是顺序的
