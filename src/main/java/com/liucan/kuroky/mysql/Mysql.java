@@ -86,13 +86,10 @@ public interface Mysql {
      *      5.InnoDB关注事务和并发，MyISAM关注查询性能
      *
      *  50.Mysql中的各种锁以及死锁
-     *  https://www.cnblogs.com/LBSer/p/5183300.html
      *      a.锁：
-     *          1.表级锁（MyISAM）：读共享，写互斥
-     *          2.页级锁（BDB）：锁定相邻的一组记录
-     *          3.行级锁（InnoDB）：共享锁和排他锁，通过索引上的索引项来实现，意味者：只有通过索引条件操作数据，InnoDB才会使用行级锁，否则，InnoDB将使用表锁
-     *          4.间隙锁（InnoDB）：防止幻读，锁定一定范围内的数据
-     *          5.乐观锁：如mvcc不加锁，mvcc来解决不可重复读
+     *          3.行级锁（Record lock）：select from where id = 12 for update/lock in share mode
+     *          4.间隙锁（gap lock）：锁住一个索引区间（开区间，不包括双端端点）,防止幻读，锁定一定范围内的数据,如select * from t1_simple where id > 4 for update;
+     *          5.临键锁(Next-Key Locks):record lock + gap lock, 左开右闭区间，例如（5,8]
      *          6.意向锁:用来解决行锁和表锁互斥的问题：在意向锁存在的情况下，事务A必须先申请表的意向锁，成功后再申请一行的行锁
      *              如事务A行读锁，事务B表锁，是互斥的，但是如果查找表里面哪一行是行锁，效率很低，于是有了意向锁
      *          7.mysql实现悲观锁和乐观锁
@@ -112,8 +109,6 @@ public interface Mysql {
      *          3.如何定位死锁成因
      *              a.通过应用业务日志定位到问题代码，找到相应的事务对应的sql
      *              b.确定数据库隔离级别,可以确定数据库的隔离级别，我们数据库的隔离级别是RC，这样可以很大概率排除gap锁造成死锁的嫌疑
-     *              c.找DBA执行下show InnoDB STATUS看看最近死锁的日志
-     *              d.mysql有机制去检查死锁
      *
      *  71.如何保证mysql和redis，数据一致性，解决数据库与缓存双写的时候数据不一致的情况
      *  https://www.cnblogs.com/lingqin/p/10279393.html
