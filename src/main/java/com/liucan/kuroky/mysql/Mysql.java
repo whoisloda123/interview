@@ -30,7 +30,7 @@ public interface Mysql {
      *          1.解决不可重复读和可重复读，每一行多了创建事务版本号和删除事务版本号和回滚指针
      *          2.通过undo log和read view来实现
      *            a.undo logs保存事务执行过程用来回滚和一致性查询
-     *            b.read view保存所有还未执行完的事务id，用来快照读和当前读（被访问的tx_id是否在read view里面）
+     *            b.read view保存所有还未执行完的事务id，快照读和当前读（被访问的tx_id是否在read view里面）会用到
      *          3.过程
      *             a.insert-当前的A事务-create_version=1，delete_version=null
      *             b.update-新插入一行B事务-create_version=2,delete_version=null 同时A事务-delete_version=2
@@ -44,10 +44,7 @@ public interface Mysql {
      *          当前读：读取的是最新版本（每次都是通过read view获取最新的版本）,不可重复读实现
      *          普通的SELECT就是快照,UPDATE、DELETE、INSERT、SELECT ...  LOCK IN SHARE MODE、SELECT ... FOR UPDATE是当前读
      *          Consistent read（一致性读）是READ COMMITTED和REPEATABLE READ隔离级别下普通SELECT语句默认的模式。
-     *       f.锁
-     *          Record Locks（记录锁）：在索引记录上加锁
-     *          Gap Locks（间隙锁）：在索引记录之间加锁
-     *          Next-Key Locks：在索引记录上加锁，并且在索引记录之前的间隙加锁
+     *       h.MySQL采用了自动提交（AUTOCOMMIT）的机制，InnoDB存储引擎，是支持事务的，所有的用户活动都发生在事务中.普通的insert也是在事务中执行，只是自动提交的
      *       g.总结
      *         1.利用MVCC实现一致性非锁定读，保证同一个事务中多次读取相同的数据返回的结果是一样的，解决了不可重复读的问题
      *         2.利用Gap Locks和Next-Key可以阻止其它事务在锁定区间内插入数据，因此解决了幻读问题
@@ -78,10 +75,6 @@ public interface Mysql {
      *  49.MySQL存储引擎-InnoDB&MyISAM区别
      *  https://www.cnblogs.com/liqiangchn/p/9066686.html
      *      两者最大的区别就是InnoDB支持事务，和行锁，而MyISAM是不支持的
-     *      1.InnoDB的数据存储基于聚簇索引（数据和索引是存在一起，主键索引就是，不过他的二级索引（非主键索引）必须包含主键列）的，
-     *          而MyISAM是基于非聚簇索引进行存储的，索引和数据是分开的
-     *      2.InnoDB支持事务，MyISAM不支持
-     *      3.InnoDB支持行锁，MyISAM不支持
      *      4.MyisAM支持全文索引（FULLTEXT）、压缩索引，InnoDB不支持
      *      5.InnoDB关注事务和并发，MyISAM关注查询性能
      *
@@ -134,23 +127,48 @@ public interface Mysql {
      *          2.跨节点Join的问题，排序等等问题
      *
      *  73.sql优化
+     *     a.开启慢查询日志
+     *          set global slow_query_log = ON;查找到执行慢的sql语句
+     *          mysqldumpslow工具搜索慢查询日志中的SQL语句
+     *     b.通过explain select查看慢sql计划,重要字段
+     *          select_type：查询类型，比如：普通查询simple、联合查询(union、union all)、子查询等复杂查询
+     *          table:表名
+     *          type：单位查询的连接类型或者理解为访问类型
+     *          key：真正使用到的索引
+     *          extra：的额外的信息，如using index，using where
+     *     c.索引优化
+     *          频繁出现在where 条件判断，order排序，group by分组字段
+     *          表记录很少不需创建索引
+     *          一个表的索引个数不能过多
+     *          主键索引建议使用自增的长整型，避免使用很长的字段
+     *          尽量创建组合索引，而不是单列索引
      *
      *  83.为什么组合索引是最左原则，向右匹配直至遇到范围查询(>、<、between、like)就停止匹配
      *      a.组合索引在b+树里面存储的结构和普通的索引是一样的,只是是多个索引的集合
-     *      b.组合索引（a,b,c）,优先按照a列排序，a列相同的话再按照b列排序，如果b列相同再按照c列排序,故是最左匹配，相对于建立了a,ab,abc索引
+     *      b.组合索引（a,b,c）,优先按照a列排序，a列相同的话再按照b列排序，b列相同再按照c列排序,故是最左匹配，相对于建立了a,ab,abc索引
      *      c.书写SQL条件的顺序，不一定是执行时候的where条件顺序。优化器会帮助我们优化成索引可以识别的形式
      *
      *  63.mysql集群主从复制，主从同步
-     *      a.集群中每个节点都是全部内容
-     *      b.master节点上面记录的binlog-记录了所有操作，从数据库启动一个io线程复制binlog到从
-     c.通过binlog传到中继日志里面
-     d.半同步，异步，同步
-
-     * 64.日志类型：https://www.cnblogs.com/myseries/p/10728533.html
-     *  a.二进制日志（bin log）：用于记录任何修改数据库内容的语句，用于主从同步的
-     *  b.中继日志（relay log）：和bin日志一样的，只是从数据库用来同步bin日志的
-     *  c.回滚日志（undo log）：保证事务的原子性，用于实现事务
-     *  d.重做日志（redo log）：确保事务的持久性，用于在执行事务中崩溃，重启后恢复或回滚数据
-     *  e.慢查询日志（slow query log）：记录查询时间大于设置的时间的慢查询日志
+     *   https://segmentfault.com/a/1190000038967218
+     *    a.master执行完事务后记录binlog，主启动binlog dump线程将binlog event发送给从，从启动一个io线程复制binlog到relay log，从启动SQL线程，
+     *      将Relay中的数据进行重放
+     *    b.binlog有3种存储格式
+     *       statement类型：记录执行的sql
+     *       row类型：执行被修改的行
+     *       mixed类型：statement和row都有，因为row可能记录的数据很多，
+     *    d.同步方式
+     *        异步：写入binlog认为同步成功
+     *        同步：所有从收到binlog日志，且收到所有从成功的事务消息才认为成功
+     *        半同步：只收到一个从事务执行成功的消息
+     *
+     *  65.mysql集群方案
+     *    https://www.cnblogs.com/rouqinglangzi/p/10921982.html
+     *
+     *  64.日志类型：https://www.cnblogs.com/myseries/p/10728533.html
+     *   a.二进制日志（bin log）：用于记录任何修改数据库内容的语句，用于主从同步和本机数据恢复
+     *   b.中继日志（relay log）：和bin日志一样的，只是从数据库用来同步bin日志的
+     *   c.回滚日志（undo log）：保证事务的原子性，用于实现事务
+     *   d.重做日志（redo log）：确保事务的持久性，用于在执行事务中崩溃，重启后恢复或回滚数据
+     *   e.慢查询日志（slow query log）：记录查询时间大于设置的时间的慢查询日志
      */
 }
