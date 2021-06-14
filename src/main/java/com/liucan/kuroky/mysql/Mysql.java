@@ -8,6 +8,14 @@ public interface Mysql {
     /* *
      *  1.回表查询:根据在辅助索引树中获取的主键id，到主键索引树检索数据的过程称回表查询
      *
+     *  2.mysql innodb文件结构物理上分为：日志文件和数据索引文件
+     *      a.数据索引文件：.frm文件是表结构信息，.ibd文件是表数据和索引信息
+     *
+     *  3.InnoDB存储引擎,B+树的高度一般为2-4层，就可以满足千万级数据的存储。查找数据的时候
+     *    一次页的查找代表一次IO，那我们通过主键索引查询的时候，其实最多只需要2-4次IO就可以了
+     *    a.一个节点占用16byte（key为8byte+2个4byte指针）
+     *    b.一次性取一页16kb的数据，可以取16kb/16byte=1000的数据，故2层b+树可以存1000*1000一百万数据，3层1000*1000*1000
+     *
      *  2.checkpoint机制（每隔一段时间检测）
      *   a.当redo log重做日志不可用（事务已经持久化成功）时会直接删除
      *   b.当缓冲池不够用是，会将缓冲落盘
@@ -30,7 +38,7 @@ public interface Mysql {
      *          1.解决不可重复读和可重复读，每一行多了创建事务版本号和删除事务版本号和回滚指针
      *          2.通过undo log和read view来实现
      *            a.undo logs保存事务执行过程用来回滚和一致性查询
-     *            b.read view保存所有还未执行完的事务id，快照读和当前读（被访问的tx_id是否在read view里面）会用到
+     *            b.read view保存所有还未执行完的事务id，快照读和当前读（被访问的tx_id是否在read view里面,如果在的话不能够被访问，否则可以）会用到
      *          3.过程
      *             a.insert-当前的A事务-create_version=1，delete_version=null
      *             b.update-新插入一行B事务-create_version=2,delete_version=null 同时A事务-delete_version=2
@@ -39,11 +47,11 @@ public interface Mysql {
      *                 a.创建版本小于等于当前版本 create_version <= 1，确保读取的行的是在当前事务版本之前的
      *                 b.删除版本大于等于当前版本 delete_version >=1,确保事务之前行没有被删除
      *             e.而回滚指针是执行上一个版本（undo logs）形成引用链条
-     *       e.快照读和当前读
-     *          快照读：读取的是快照版本（只在第一次通过read view获取最新的版本），也就是历史版本，可重复读实现
-     *          当前读：读取的是最新版本（每次都是通过read view获取最新的版本）,不可重复读实现
-     *          普通的SELECT就是快照,UPDATE、DELETE、INSERT、SELECT ...  LOCK IN SHARE MODE、SELECT ... FOR UPDATE是当前读
-     *          Consistent read（一致性读）是READ COMMITTED和REPEATABLE READ隔离级别下普通SELECT语句默认的模式。
+     *          4.快照读和当前读
+     *           快照读：读取的是快照版本（只在第一次通过read view获取最新的版本），也就是历史版本，可重复读实现
+     *           当前读：读取的是最新版本（每次都是通过read view获取最新的版本）,不可重复读实现
+     *           普通的SELECT就是快照,UPDATE、DELETE、INSERT、SELECT ...  LOCK IN SHARE MODE、SELECT ... FOR UPDATE是当前读
+     *           Consistent read（一致性读）是READ COMMITTED和REPEATABLE READ隔离级别下普通SELECT语句默认的模式。
      *       h.MySQL采用了自动提交（AUTOCOMMIT）的机制，InnoDB存储引擎，是支持事务的，所有的用户活动都发生在事务中.普通的insert也是在事务中执行，只是自动提交的
      *       g.总结
      *         1.利用MVCC实现一致性非锁定读，保证同一个事务中多次读取相同的数据返回的结果是一样的，解决了不可重复读的问题
@@ -64,13 +72,6 @@ public interface Mysql {
      *     a.聚簇索引：索引的叶节点就是数据节点。确定表中数据的物理顺序，一个表只能包含一个聚集索引
      *     b.非聚簇索引：叶节点仍然是索引节点，只不过有一个指针指向对应的数据块
      *     c.覆盖索引:查询语句覆盖了索引时（查询结果和条件里面都只是索引），只通过索引而不用通过获取行数据就可以获取到结果
-     *
-     *  42.索引创建建议
-     *    a. 频繁出现在where 条件判断，order排序，group by分组字段
-     *    b. 表记录很少不需创建索引
-     *    c.一个表的索引个数不能过多
-     *    d.主键索引建议使用自增的长整型，避免使用很长的字段
-     *    e.尽量创建组合索引，而不是单列索引
      *
      *  49.MySQL存储引擎-InnoDB&MyISAM区别
      *  https://www.cnblogs.com/liqiangchn/p/9066686.html
@@ -133,29 +134,30 @@ public interface Mysql {
      *     b.通过explain select查看慢sql计划,重要字段
      *          select_type：查询类型，比如：普通查询simple、联合查询(union、union all)、子查询等复杂查询
      *          table:表名
-     *          type：单位查询的连接类型或者理解为访问类型
+     *          type：单位查询的连接类型或者理解为访问类型，const，ref，index
      *          key：真正使用到的索引
      *          extra：的额外的信息，如using index，using where
      *     c.索引优化
      *          频繁出现在where 条件判断，order排序，group by分组字段
+     *          尽量创建组合索引，而不是单列索引
      *          表记录很少不需创建索引
      *          一个表的索引个数不能过多
      *          主键索引建议使用自增的长整型，避免使用很长的字段
-     *          尽量创建组合索引，而不是单列索引
      *
-     *  83.为什么组合索引是最左原则，向右匹配直至遇到范围查询(>、<、between、like)就停止匹配
+     *  83.为什么组合索引是最左原则，向右匹配直至遇到范围查询1(>、<、between、like)就停止匹配
      *      a.组合索引在b+树里面存储的结构和普通的索引是一样的,只是是多个索引的集合
      *      b.组合索引（a,b,c）,优先按照a列排序，a列相同的话再按照b列排序，b列相同再按照c列排序,故是最左匹配，相对于建立了a,ab,abc索引
      *      c.书写SQL条件的顺序，不一定是执行时候的where条件顺序。优化器会帮助我们优化成索引可以识别的形式
      *
      *  63.mysql集群主从复制，主从同步
      *   https://segmentfault.com/a/1190000038967218
-     *    a.master执行完事务后记录binlog，主启动binlog dump线程将binlog event发送给从，从启动一个io线程复制binlog到relay log，从启动SQL线程，
-     *      将Relay中的数据进行重放
+     *    a.通过binlog和relay log实现
      *    b.binlog有3种存储格式
      *       statement类型：记录执行的sql
      *       row类型：执行被修改的行
-     *       mixed类型：statement和row都有，因为row可能记录的数据很多，
+     *       mixed类型：statement和row都有，因为row可能记录的数据很多
+     *    c.master执行完事务后记录binlog，主启动binlog dump线程将binlog event发送给从，从启动一个io线程复制binlog到relay log，从启动SQL线程，
+     *      将Relay中的数据进行重放，
      *    d.同步方式
      *        异步：写入binlog认为同步成功
      *        同步：所有从收到binlog日志，且收到所有从成功的事务消息才认为成功
