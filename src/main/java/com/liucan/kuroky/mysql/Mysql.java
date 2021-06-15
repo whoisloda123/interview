@@ -136,7 +136,7 @@ public interface Mysql {
      *          table:表名
      *          type：单位查询的连接类型或者理解为访问类型，const，ref，index
      *          key：真正使用到的索引
-     *          extra：的额外的信息，如using index，using where
+     *          extra：的额外的信息，如using index（覆盖索引就是这个），using where
      *     c.索引优化
      *          频繁出现在where 条件判断，order排序，group by分组字段
      *          尽量创建组合索引，而不是单列索引
@@ -162,9 +162,16 @@ public interface Mysql {
      *        异步：写入binlog认为同步成功
      *        同步：所有从收到binlog日志，且收到所有从成功的事务消息才认为成功
      *        半同步：只收到一个从事务执行成功的消息
+     *    e.主从延迟原因和方案
+     *       https://zhuanlan.zhihu.com/p/259250733
+     *       原因：slave的重放SQL线程是单线程的，重放过程中如果遇到锁也会等待
+     *       如何判断：show slave status -> Seconds_Behind_Master，0 ：该值为零正常，NULL ：表示io_thread或是sql_thread有任何一个发生故障，该线程的Running状态是No
+     *       如何尽量避免
+     *          性能比Master更好的机器作为Slave，增加Slave的数量，降低单台Slave上的读压力
+     *          关闭Slave的sync_binlog（写入binlog）参数，innodb_flushlog（写日志）参数
      *
      *  65.mysql集群方案
-     *    https://www.cnblogs.com/rouqinglangzi/p/10921982.html
+     *    https://blog.csdn.net/weixin_43750212/article/details/104778156
      *
      *  64.日志类型：https://www.cnblogs.com/myseries/p/10728533.html
      *   a.二进制日志（bin log）：用于记录任何修改数据库内容的语句，用于主从同步和本机数据恢复
@@ -172,5 +179,13 @@ public interface Mysql {
      *   c.回滚日志（undo log）：保证事务的原子性，用于实现事务
      *   d.重做日志（redo log）：确保事务的持久性，用于在执行事务中崩溃，重启后恢复或回滚数据
      *   e.慢查询日志（slow query log）：记录查询时间大于设置的时间的慢查询日志
+     *
+     *   65.ACID靠什么保证
+     *    A原子性由undo log日志保证，它记录了需要回滚的日志信息，事务回滚时撤销已经执行成功的sql
+     *    C一致性一般由代码层面来保证
+     *    I隔离性由MVCC来保证
+     *    D持久性由内存+redo log来保证，mysql修改数据同时在内存和redo log记录这次操作，事务提交的时候通过redo log刷盘，宕机的时候可以从redo log恢复
+     *
+     *   66.interview：https://zhuanlan.zhihu.com/p/164519371
      */
 }
