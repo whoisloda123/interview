@@ -36,8 +36,9 @@ public interface Mysql {
      *       d.mvcc(多版本并发控制)
      *         https://zhuanlan.zhihu.com/p/364331468
      *          1.解决不可重复读和可重复读，每一行多了创建事务版本号和删除事务版本号和回滚指针
-     *          2.通过undo log和read view来实现
-     *            a.undo logs保存事务执行过程用来回滚和一致性查询
+     *          2.通过undo log和redo log,read view来实现
+     *            a.undo logs（逻辑日志）保存事务执行过程用来回滚和一致性查询
+     *            c.redo logs(物理日志)用来持久化事务已经回滚，如断电后恢复
      *            b.read view保存所有还未执行完的事务id，快照读和当前读（被访问的tx_id是否在read view里面,如果在的话不能够被访问，否则可以）会用到
      *          3.过程
      *             a.insert-当前的A事务-create_version=1，delete_version=null
@@ -81,7 +82,12 @@ public interface Mysql {
      *
      *  50.Mysql中的各种锁以及死锁
      *      a.锁：
-     *          3.行级锁（Record lock）：select from where id = 12 for update/lock in share mode
+     *          3.行级锁（Record lock）：行锁是通过给索引项加锁实现的
+     *            a.故如果是查询的话，只有在查询的时候使用到了索引并且查到了才会用行锁，否者表锁
+     *              如：SELECT * FROM products WHERE id='3' FOR UPDATE;行锁
+     *                  SELECT * FROM products WHERE id='-1' FOR UPDATE：无记录，无锁
+     *                  SELECT * FROM products WHERE name='Mouse' FOR UPDATE;，无主键，表锁
+     *            b.对于UPDATE、DELETE和INSERT语句，InnoDB会自动给涉及数据集加排他锁（X)；对于普通SELECT语句，InnoDB不会加任何锁
      *          4.间隙锁（gap lock）：锁住一个索引区间（开区间，不包括双端端点）,防止幻读，锁定一定范围内的数据,如select * from t1_simple where id > 4 for update;
      *          5.临键锁(Next-Key Locks):record lock + gap lock, 左开右闭区间，例如（5,8]
      *          6.意向锁:用来解决行锁和表锁互斥的问题：在意向锁存在的情况下，事务A必须先申请表的意向锁，成功后再申请一行的行锁
@@ -137,7 +143,8 @@ public interface Mysql {
      *          type：单位查询的连接类型或者理解为访问类型，const，ref，index
      *          key：真正使用到的索引
      *          extra：的额外的信息，如using index（覆盖索引就是这个），using where
-     *     c.索引优化
+     *     c.通过show profile：查看执行的sql的会话中资源消耗情况，如cpu，io，sql执行消耗时间
+     *     d.索引优化
      *          频繁出现在where 条件判断，order排序，group by分组字段
      *          尽量创建组合索引，而不是单列索引
      *          表记录很少不需创建索引
@@ -176,8 +183,8 @@ public interface Mysql {
      *  64.日志类型：https://www.cnblogs.com/myseries/p/10728533.html
      *   a.二进制日志（bin log）：用于记录任何修改数据库内容的语句，用于主从同步和本机数据恢复
      *   b.中继日志（relay log）：和bin日志一样的，只是从数据库用来同步bin日志的
-     *   c.回滚日志（undo log）：保证事务的原子性，用于实现事务
-     *   d.重做日志（redo log）：确保事务的持久性，用于在执行事务中崩溃，重启后恢复或回滚数据
+     *   c.回滚日志（undo log，逻辑日志）：保证事务的原子性，用于实现事务
+     *   d.重做日志（redo log，物理日志）：确保事务的持久性，用于在执行事务中崩溃，重启后恢复或回滚数据
      *   e.慢查询日志（slow query log）：记录查询时间大于设置的时间的慢查询日志
      *
      *   65.ACID靠什么保证
@@ -185,6 +192,9 @@ public interface Mysql {
      *    C一致性一般由代码层面来保证
      *    I隔离性由MVCC来保证
      *    D持久性由内存+redo log来保证，mysql修改数据同时在内存和redo log记录这次操作，事务提交的时候通过redo log刷盘，宕机的时候可以从redo log恢复
+     *
+     *   66.UNION和UNION ALL的区别
+     *      union会将2个结果集合并去掉重复的项，而union all则只是简单的合并不会去掉重复项
      *
      *   66.interview：https://zhuanlan.zhihu.com/p/164519371
      */
