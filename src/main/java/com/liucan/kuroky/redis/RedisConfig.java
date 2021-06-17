@@ -1,10 +1,5 @@
 package com.liucan.kuroky.redis;
 
-import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
-
 /**
  *
  * 一.redis集群哨兵
@@ -93,8 +88,17 @@ import org.springframework.context.annotation.PropertySource;
  * 1）操作redis时，额外做一步rehash
  *
  * 对redis做读取、插入、删除等操作时，会把位于table[dict->rehashidx]位置的链表移动到新的dictht中，然后把rehashidx做加一操作，移动到后面一个槽位。
-   十一.reids底层数据结构和常用类型用的数据结构
-     https://cloud.tencent.com/developer/article/1690533
+ *
+ * 11.redis底层数据结构和常用类型用的数据结构
+ *    https://cloud.tencent.com/developer/article/1690533
+ *    a.5种数据集类型都是通过RedisObject结构体存储的，里面有类型，编码类型（数据结构），lru（最近使用时间，用来内存满清除过期数据的），引用计数，数据
+ *    b.每个类型至少有2种编码类型
+ *      string:int（当类型为int时）,embstr,raw,后面2个用的sds简单动态字符串
+ *      list:ziplist（数据量少的时候），双端链表
+ *      map：ziplist（数据量少的时候），hashtable
+ *          hash表里面的dic结构，有2个hash表，hash[0](正常用)，hash[1]和rehashIndex都是扩容，rehash的时候用
+ *      set：intset（数据量少的时候）,hashtable,value为null
+ *      zset：ziplist（数据量少的时候），skiplist（跳跃表，积分排序）和map（通过value获取对应的sorce）
  *
  * 2）后台定时任务调用rehash
  *
@@ -104,10 +108,6 @@ import org.springframework.context.annotation.PropertySource;
  *      http://blog.51cto.com/aiilive/1627455（spring-redis）
  *
  */
-@Data
-@Configuration
-@ConfigurationProperties(prefix = "redis")
-@PropertySource(value = "classpath:properties/redis.properties")
 public class RedisConfig {
 
 }
