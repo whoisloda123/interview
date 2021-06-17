@@ -143,7 +143,7 @@ public interface Mysql {
      *          type：单位查询的连接类型或者理解为访问类型，const，ref，index
      *          key：真正使用到的索引
      *          extra：的额外的信息，如using index（覆盖索引就是这个），using where
-     *     c.通过show profile：查看执行的sql的会话中资源消耗情况，如cpu，io，sql执行消耗时间
+     *     c.通过show profile：查看执行的sql的会话中资源消耗情况，如cpu，io，sql执行消耗时间，默认关闭的
      *     d.索引优化
      *          频繁出现在where 条件判断，order排序，group by分组字段
      *          尽量创建组合索引，而不是单列索引
