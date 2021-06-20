@@ -8,19 +8,44 @@ package com.liucan.kuroky.redis;
  *      a.集群监控：负责监控Redis master(读写)和slave(读)进程是否正常工作
  *      b.消息通知：如果某个Redis实例有故障，那么哨兵负责发送消息作为报警通知给管理员
  *      c.故障转移：如果master node挂掉了，会自动转移到slave node上
- *      d.配置中心：如果故障转移发生了，通知client客户端新的master地址
+ *          1. 过滤掉主观下线的节点
+ *          2. 选择slave-priority/ replica-priority最高的节点，（replica-priority 0的不选择）如果由则返回没有就继续选择
+ *          3. 选择出复制偏移量最大的系节点，因为复制偏移量越大则数据复制的越完整，如果由就返回了，没有就继续
+ *          4. 选择run_id最小的节点
+ *      e.哨兵也是个集群，每隔1秒每个哨兵会向整个集群：Master主服务器+Slave从服务器+其他Sentinel（哨兵）进程，发送一次ping命令做一次心跳检测来获取节点信息
+ *      f.半数以上的哨兵主观认为下线了，那就客观认为该节点下线了，然后哨兵内部会通过选举（raft）出一个哨兵来进行将slave转换为master
+ *      g.哨兵leader选举：
+ *          每个在线的哨兵节点都可以成为领导者，每个哨兵向其他哨兵发送命令让自己成为leader，其他可以同意或拒绝，如果半数以上的同意了，则可以成为领导
  *  2.集群
  *      a.即使使用哨兵，redis每个实例也是全量存储，每个redis存储的内容都是完整的数据，浪费内存
  *      b.解决单机Redis容量有限的问题，将数据按一定的规则分配到多台机器
- *      c.每个key会对应一个slot，总共16384个slot均分到不同的节点上面,至少需要3主3从
+ *      c.每个key会对应一个slot，总共16384个slot均分到不同的节点上面(每个节点也有主从),至少需要3主3从
+ *      e.副本漂移:当一个master节点没有从，而其他master节点有2个以上的从时，该节点下面的一个从节点会漂移为之前master的slave节点
+ *      d.节点失效判断:集群中所有master参与投票,如果半数以上master节点与其中一个master节点通信超过(cluster-node-timeout),认为该master节点挂掉
+ *      e.集群失效判断
+ *          如果集群任意master挂掉,且当前master没有slave，则集群进入fail状态。也可以理解成集群的[0-16383]slot映射不完全时进入fail状态。
+ *          如果集群超过半数以上master挂掉，无论是否有slave，集群进入fail状态
  *  3.投票选举
  *      a.所有master参与，每个master都和其他master连接上了的，如果半数以上的master认为某个节点挂掉，就真的挂掉了
  *      b.根据各个slave最后一次同步master信息的时间，越新表示slave的数据越新，竞选的优先级越高，就更有可能选中.
+ *
  * 二.主从复制
  *  http://blog.itpub.net/31545684/viewspace-2213629/
  *      a.全量复制：从数据库启动时，向主数据库发送sync命令，主数据库接收到sync后开始在快照rdb，在保存快照期间受到的命名缓存起来，
  *          快照完成时，主数据库会将快照和缓存的命令一块发送给从
  *      b.增量复制：主每收到1个写命令就同步发送给从
+ *
+ * 三.补充数据
+ *      a.bitmap(底层类型string):setbit,bitcount,(bitop and/or newkey key1 key2)
+ *          1.可用来实现布隆过滤器，统计每天用户签到信息（用户id为key），连续几天访问的用户（bitop and）
+ *      b.hyperloglog(基于bitmap):pfadd pfcount pfmerge，是基数统计（统计不重复个数），和set差不多
+ *          https://www.jianshu.com/p/55defda6dcd2，实现和概率学有关系
+ *          1.loglog是基数统计算法，空间复杂度log2log2(N)，hyperloglog差不多，只需要12k就可以统计2^64个数
+ *          2.有一定误差0.81%，适用于巨量统计 不能保存原始数据
+ *          3.用途：记录网站IP注册数，每日访问的IP数，页面实时UV、在线用户人数
+ *      c.Geospatial（底层类型zset）
+ *          1.保存地理位置，可以用于找到最近的位置
+ *          2.GEOADD key 经度 维度 名称,
  *
  * 二.单线程为何还快
  *  1.基于内存操作,内存操作非常快，所以说没有必要多线程
@@ -99,14 +124,14 @@ package com.liucan.kuroky.redis;
  *      set：intset（数据量少的时候）,hashtable,value为null
  *      zset：ziplist（数据量少的时候），skiplist（跳跃表，积分排序）和map（通过value获取对应的sorce）
  *
- * 2）后台定时任务调用rehash
- *
+ * 2后台定时任务调用rehash
  * 后台定时任务rehash调用链，同时可以通过server.hz控制rehash调用频率
- * 二.spring-redis
- *  参考：https://www.cnblogs.com/EasonJim/p/7803067.html（spring-redis）
- *      http://blog.51cto.com/aiilive/1627455（spring-redis）
  *
  */
 public class RedisConfig {
+
+    private void test() {
+
+    }
 
 }
