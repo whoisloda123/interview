@@ -18,6 +18,9 @@ import java.util.Collections;
  *      正确：执行lua脚本语句，if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end
  *      错误：判断key的value和期望的比较相等后，然后在删除key
  *      原因：没有保证2条指令的原子性，在判断value相等后，刚好key过期然后其他地方获取到锁设置了新的value，然后导致删除了其他的锁
+ *  3.redis分布式锁问题
+ *      a.会一直自旋，耗cpu性能
+ *      b.主从模式下，如果获取到锁后主挂了，从变成主了，其他获取到锁了，而之前的主被拉起来后也有锁，相对于有2个锁了，而zk分布式锁没有这个问题
  */
 @Slf4j
 public class RedisDistributedLock {

@@ -1,5 +1,7 @@
 package com.liucan.kuroky.redis;
 
+import org.springframework.data.redis.core.StringRedisTemplate;
+
 /**
  *
  * 一.redis集群哨兵
@@ -130,8 +132,5 @@ package com.liucan.kuroky.redis;
  */
 public class RedisConfig {
 
-    private void test() {
-
-    }
 
 }
