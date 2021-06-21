@@ -1,4 +1,4 @@
-package com.liucan.kuroky.zk;
+package com.liucan.kuroky.distribution;
 
 import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.Jedis;
@@ -6,10 +6,7 @@ import redis.clients.jedis.Jedis;
 import java.util.Collections;
 
 /**
- * 一.redis分布式锁
- * 相关资料https://www.cnblogs.com/linjiqin/p/8003838.html
  * 二.redis分布式锁需要注意的事项
- *  https://cloud.tencent.com/developer/article/1349732
  *  1.加锁
  *      正确：set（key, value, nx, px, time）
  *      错误：setnx和setex执行

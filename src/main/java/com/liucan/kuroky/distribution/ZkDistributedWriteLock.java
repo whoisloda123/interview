@@ -1,4 +1,4 @@
-package com.liucan.kuroky.zk;
+package com.liucan.kuroky.distribution;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.zookeeper.*;
