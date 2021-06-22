@@ -97,7 +97,7 @@ package com.liucan.kuroky.redis;
  *      c.volatile-random：从已设置过期时间的数据集中任意选择数据淘汰
  *      d.allkeys-lru：从数据集中挑选最近最少使用的数据淘汰
  *      e.allkeys-random：从数据集中任意选择数据淘汰
- *      f.no-enviction（驱逐）：禁止驱逐数据
+ *      f.no-enviction（驱逐）：禁止驱逐数据(默认)
  *
  * 八.发布订阅
  *   1.消息订阅者，即subscribe客户端，需要独占链接，即进行subscribe期间，redis-client无法穿插其他操作，
