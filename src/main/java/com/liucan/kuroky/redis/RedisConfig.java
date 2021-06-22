@@ -113,12 +113,14 @@ package com.liucan.kuroky.redis;
  * 九.redis 延迟队列
  *   1.就是将消息放入zset里面，score为过期时间，然后有专门的线程去取最近的时间，拿出来消费，然后在删除掉
  *   2.应用场景：下单成功，30分钟之后不支付自动取消，等
- * 十。Redis的rehash为什么要渐进rehash，渐进rehash又是怎么实现的?
- * 因为redis是单线程，当K很多时，如果一次性将键值对全部rehash，庞大的计算量会影响服务器性能，
- * 甚至可能会导致服务器在一段时间内停止服务。不可能一步完成整个rehash操作，所以redis是分多次、渐进式的rehash。渐进性哈希分为两种：
- * 1）操作redis时，额外做一步rehash
  *
- * 对redis做读取、插入、删除等操作时，会把位于table[dict->rehashidx]位置的链表移动到新的dictht中，然后把rehashidx做加一操作，移动到后面一个槽位。
+ * 十.Redis的rehash为什么要渐进rehash，渐进rehash又是怎么实现的?
+ *  https://blog.csdn.net/qq_38262266/article/details/107727116
+ *      1.hash表结构，不仅是对外的hash类型的结构，而且redis数据库使用的使用的数据结构
+ *      2.redis是单线程，K很多时次性将键值对全部rehash，庞大的计算量会影响服务器性能，
+ *      3.渐进式的rehash:
+ *          a.里面有2个hash
+ *
  *
  * 11.redis底层数据结构和常用类型用的数据结构
  *    https://cloud.tencent.com/developer/article/1690533
@@ -127,12 +129,11 @@ package com.liucan.kuroky.redis;
  *      string:int（当类型为int时）,embstr,raw,后面2个用的sds简单动态字符串
  *      list:ziplist（数据量少的时候），双端链表
  *      map：ziplist（数据量少的时候），hashtable
- *          hash表里面的dic结构，有2个hash表，hash[0](正常用)，hash[1]和rehashIndex都是扩容，rehash的时候用
+ *          a.hash表里面的dic结构，有2个hash表，hash[0](正常用)，hash[1]和rehashIndex都是扩容，rehash的时候用
+ *          b.hash表结构，不仅是对外的hash类型的结构，而且redis数据库使用的使用的数据结构
  *      set：intset（数据量少的时候）,hashtable,value为null
  *      zset：ziplist（数据量少的时候），skiplist（跳跃表，积分排序）和map（通过value获取对应的sorce）
- *
- * 2后台定时任务调用rehash
- * 后台定时任务rehash调用链，同时可以通过server.hz控制rehash调用频率
+
  *
  */
 public class RedisConfig {
