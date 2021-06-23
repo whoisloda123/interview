@@ -47,11 +47,13 @@ package com.liucan.kuroky.redis;
  *          1.保存地理位置，可以用于找到最近的位置
  *          2.GEOADD key 经度 维度 名称,
  *
- * 二.单线程为何还快
+ * 二.单线程为何还快：
+ *  https://www.cnblogs.com/javastack/p/12848446.html
  *  1.基于内存操作,内存操作非常快，所以说没有必要多线程
  *  2.不存在多进程或者多线程导致的切换而消耗CPU，而多线程会处理锁
  *  3.使用epoll多路 I/O 复用模型来处理多并发客户端
- *  4.6.0加入了多线程，如删除大数据key，用unlink异步删除
+ *  4.执行命令的核心模块是单线程的，如果删除大数据的时候会比较慢
+ *  4.6.0加入了多线程，如异步删除大数据key，网络数据的读写和协议解析等
  *
  * 三.持久化
  *  1.RDB快照
@@ -100,6 +102,7 @@ package com.liucan.kuroky.redis;
  *      d.allkeys-lru：从数据集中挑选最近最少使用的数据淘汰
  *      e.allkeys-random：从数据集中任意选择数据淘汰
  *      f.no-enviction（驱逐）：禁止驱逐数据(默认)
+ *      4.0之后新增了lfu算法回收
  *
  * 八.发布订阅
  *   1.消息订阅者，即subscribe客户端，需要独占链接，即进行subscribe期间，redis-client无法穿插其他操作，
