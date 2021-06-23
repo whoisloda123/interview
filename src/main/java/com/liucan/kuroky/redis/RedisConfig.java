@@ -26,7 +26,7 @@ package com.liucan.kuroky.redis;
  *          如果集群任意master挂掉,且当前master没有slave，则集群进入fail状态。也可以理解成集群的[0-16383]slot映射不完全时进入fail状态。
  *          如果集群超过半数以上master挂掉，无论是否有slave，集群进入fail状态
  *  3.投票选举
- *      a.所有master参与，每个master都和其他master连接上了的，如果半数以上的master认为某个节点挂掉，就真的挂掉了
+ *      a.所有master参与，每个master都和其他master连接上了的，如果半数以上的master认为某个节点挂掉(故至少需要3主3从)，就真的挂掉了
  *      b.根据各个slave最后一次同步master信息的时间，越新表示slave的数据越新，竞选的优先级越高，就更有可能选中.
  *
  * 二.主从复制
@@ -63,9 +63,6 @@ package com.liucan.kuroky.redis;
  *          2.无效的命令可以删除掉，如del了key的命令可以删除掉
  *  3.混合方式，4.0之后支持的且默认开启，2种方式都有，因为rdb可能会造成数据丢失，而aof性能慢
  *  4.当两种方式同时开启时，一般情况下只要使用默认开启的RDB即可，RDB便于进行数据库备份，并且恢复数据集的速度也要快很多
- *
- * 四.分布式锁
- *   setnx,setex2个命令来实现
  *
  * 五.缓存问题
  *  1.缓存雪崩：缓存同一时间大面积的失效，这个时候又来了一波请求，结果请求都怼到数据库上，从而导致数据库连接异常
@@ -114,13 +111,13 @@ package com.liucan.kuroky.redis;
  *   1.就是将消息放入zset里面，score为过期时间，然后有专门的线程去取最近的时间，拿出来消费，然后在删除掉
  *   2.应用场景：下单成功，30分钟之后不支付自动取消，等
  *
- * 十.Redis的rehash为什么要渐进rehash，渐进rehash又是怎么实现的?
+ * 十.Redis的rehash
  *  https://blog.csdn.net/qq_38262266/article/details/107727116
  *      1.hash表结构，不仅是对外的hash类型的结构，而且redis数据库使用的使用的数据结构
  *      2.redis是单线程，K很多时次性将键值对全部rehash，庞大的计算量会影响服务器性能，
  *      3.渐进式的rehash:
- *          a.里面有2个hash
- *
+ *          a.里面dict有2个hash表和rehashIndex,正常情况rehashIndex默认-1，hash[1]为null，数据保存在hash[0]
+ *          b.在需要扩容的时候，每执行增删查改的时候，都会将索引为rehashIndex的桶的数据从hash0[rehashIndex]] -> hash1[rehashIndex],完成后rehashIndex + 1
  *
  * 11.redis底层数据结构和常用类型用的数据结构
  *    https://cloud.tencent.com/developer/article/1690533
@@ -134,7 +131,17 @@ package com.liucan.kuroky.redis;
  *      set：intset（数据量少的时候）,hashtable,value为null
  *      zset：ziplist（数据量少的时候），skiplist（跳跃表，积分排序）和map（通过value获取对应的sorce）
 
- *
+ *  12.redis集群扩容/收缩
+ *      https://cloud.tencent.com/developer/article/1534189
+ *      a.在扩容/收缩过程中整个集群都是可用状态的，可读可写
+ *      b.先加入集群，迁移slot和数据，主要就是迁移slot里面的数据
+ *      c.先确定slot迁移计划，确定哪些节点的哪些slot需迁移到新的节点，且要保证每个节点的slot数量分布均匀
+ *      d.迁移数据，逐个节点逐个slot进行的
+ *          1.对目标节点发送cluster setslot {slot} importing {sourceNodeId}命令，让目标节点准备导入槽数据
+ *          2.对源节点发送cluster setslot {slot} migrating {targetNodeId}命令，让源节点准备迁出槽数据
+ *          3.把获取的键通过流水线(pipeline)机制批量迁移到目标节点
+ *          4.  可以用个redis-trib.rb来替代手动进行
+ *      e.收缩过程和扩容差不多
  */
 public class RedisConfig {
 
