@@ -40,7 +40,7 @@ package com.liucan.kuroky.redis;
  *          1.可用来实现布隆过滤器，统计每天用户签到信息（用户id为key），连续几天访问的用户（bitop and）
  *      b.hyperloglog(基于bitmap):pfadd pfcount pfmerge，是基数统计（统计不重复个数），和set差不多
  *          https://www.jianshu.com/p/55defda6dcd2，实现和概率学有关系
- *          1.loglog是基数统计算法，空间复杂度log2log2(N)，hyperloglog差不多，只需要12k就可以统计2^64个数
+ *          1.loglog是基于基数估计的算法，伯努利抛硬币算法，空间复杂度log2log2(N)，hyperloglog差不多，只需要12k就可以统计2^64个数
  *          2.有一定误差0.81%，适用于巨量统计 不能保存原始数据
  *          3.用途：记录网站IP注册数，每日访问的IP数，页面实时UV、在线用户人数
  *      c.Geospatial（底层类型zset）
@@ -94,7 +94,7 @@ package com.liucan.kuroky.redis;
  *      c.如果要写入数据库的时候，判断一下要写入的时间是否比数据库里面的时间新，如果是则可以，否者不行
  *
  * 七.内存回收策略
- *   1.当使用内存达到一定大小的时候,会实行回收策略
+ *   1.当使用内存达到一定大小的时候,会实行回收策略，默认关闭，max memory参数被注释了
  *   2.策略方式:
  *      a.voltile-lru：从已设置过期时间的数据集中挑选最近最少使用的数据淘汰
  *      b.volatile-ttl：从已设置过期时间的数据集中挑选将要过期的数据淘汰
@@ -133,17 +133,17 @@ package com.liucan.kuroky.redis;
  *          b.hash表结构，不仅是对外的hash类型的结构，而且redis数据库使用的使用的数据结构
  *      set：intset（数据量少的时候）,hashtable,value为null
  *      zset：ziplist（数据量少的时候），skiplist（跳跃表，积分排序）和map（通过value获取对应的sorce）
-
+ *
  *  12.redis集群扩容/收缩
- *      https://cloud.tencent.com/developer/article/1534189
+ *      https://www.jianshu.com/p/47410585b0b2
  *      a.在扩容/收缩过程中整个集群都是可用状态的，可读可写
- *      b.先加入集群，迁移slot和数据，主要就是迁移slot里面的数据
+ *      b.先加入集群，迁移slot（16384个slot）和数据，主要就是迁移slot里面的数据
  *      c.先确定slot迁移计划，确定哪些节点的哪些slot需迁移到新的节点，且要保证每个节点的slot数量分布均匀
  *      d.迁移数据，逐个节点逐个slot进行的
  *          1.对目标节点发送cluster setslot {slot} importing {sourceNodeId}命令，让目标节点准备导入槽数据
  *          2.对源节点发送cluster setslot {slot} migrating {targetNodeId}命令，让源节点准备迁出槽数据
- *          3.把获取的键通过流水线(pipeline)机制批量迁移到目标节点
- *          4.  可以用个redis-trib.rb来替代手动进行
+ *          3.把获取的键通过流水线(pipeline)机制批量迁移到目标节点，复制源节点slot key数据，迁移到目标接口slot里面，复制完成后，再删除源节点key
+ *          4.完成后，向集群内所有master发送cluster setslot {slot_id} node {targetNodeId}命令，通知他们哪些槽被迁移到了哪些master上，让它们更新自己的信息
  *      e.收缩过程和扩容差不多
  */
 public class RedisConfig {
