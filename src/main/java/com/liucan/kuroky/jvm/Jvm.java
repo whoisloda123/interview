@@ -140,7 +140,10 @@ package com.liucan.kuroky.jvm;
  *      3.Class.forName和ClassLoader.loaderClass区别
  *          Class.forName得到的class是已经初始化完成的，ClassLoader.loaderClass得到的class是还没有链接的
  *
-
+ * 三.jit
+ *  jvm执行代码
+ *      a.解释执行
+ *      b.jit:动态编译,在运行时编译生成可运行的数据,只有热点代码才会动态编译（如被多次调用的代码）
  *
  *
  */
