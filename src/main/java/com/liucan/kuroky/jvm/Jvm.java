@@ -5,9 +5,11 @@ package com.liucan.kuroky.jvm;
  *   a.设置最大内存小于32G采用指针压缩机制，将指针压缩为4个字节（64位8个字节，32位4个字节）
  *   b.4个字节最大可表示2的32次方4个G的对象数量，而一个对象默认按照8个字节对齐，则最大可表示32G的对象
  *   c.如果jvm最大内存大于32G，则会表示不了，不采用指针压缩机制，这样导致指针其实也占内存
+ *
  *  2.java对象内存布局
  *  https://blog.csdn.net/m0_37670016/article/details/112799155
- *   31.jvm内存区域分配和gc（garbage collection）机制
+ *
+ *  31.jvm内存区域分配和gc（garbage collection）机制
  *      参考：https://www.cnblogs.com/zymyes2020/p/9052651.html
  *      https://www.cnblogs.com/xiaoxi/p/6486852.html
  *      gc青年代，老年代，永久代理论是基于大多数对象的很快就会变得不可达，只有极少数情况会出现旧对象持有新对象的引用
@@ -78,6 +80,7 @@ package com.liucan.kuroky.jvm;
  *        大于年轻代最大空间或者老年代的最大空间是否大于历次进入的老年代的平均对象大学，然后才进行yong gc 否则full gc
  *      10.cms和g1的特点和区别
  *       https://juejin.cn/post/6844903974676463629
+ *
  *     二.运行内存分布
  *      1.堆区
  *      2.方法区：存储已加载的类信息（版本，field，方法，接口等等），常量池（final常量，静态常量）等等
@@ -144,6 +147,8 @@ package com.liucan.kuroky.jvm;
  *  jvm执行代码
  *      a.解释执行
  *      b.jit:动态编译,在运行时编译生成可运行的数据,只有热点代码才会动态编译（如被多次调用的代码）
+ *  逃逸分析：分析一个对象的引用范围
+ *      如分析方法内的对象引用是否会被外部引用，来决定是否需要在栈上分配而不是队上
  *
  *
  */
