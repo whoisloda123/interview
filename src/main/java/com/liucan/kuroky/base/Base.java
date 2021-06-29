@@ -21,25 +21,6 @@ public interface Base {
      *      a.直接赋值是如果不存在常量池（constant pool），就在常量池创建，以后同样的字符串赋值，则直接指向常量池
      *      b.new是每次都在堆中开辟空间
      *      c.常量池:存放字符串常量和基本类型常量（public static final）
-     *   26.Reference（强引用，软引用，弱引用，虚引用,引用队列）
-     *      参考：https://www.cnblogs.com/huajiezh/p/5835618.html
-     *          https://www.cnblogs.com/dreamroute/p/5029899.html
-     *          https://blog.csdn.net/woblog/article/details/51332342
-     *          http://bylijinnan.iteye.com/blog/2085082
-     *          https://blog.csdn.net/qq_33663983/article/details/78349641
-     *      a.StrongReference强引用，经常用到，只要强引用还在就GC不会回收，可用赋值null方式手动回收
-     *      b.SoftReference软引用,有用但是不是非必须的对象，只有在内存不足的时候才会回收该对象，可以解决OOM内存溢出情况
-     *        可用来实现内存敏感的高速缓存,比如网页缓存、图片缓存等。使用软引用能防止内存泄露
-     *      c.WeakReference弱引用,弱引用的生命周期较软引用更加短暂,GC进行回收的时候，不管当前内存空间是否足够，都会回收
-     *          a.在“引用计数法”的垃圾回收机制中，能避免“循环引用”，因为 Weak references are not counted in reference counting
-     *          b."key-value"形式的数据结构中，key 可以是弱引用。例如 WeakHashMap
-     *          c.观察者模式（特别是事件处理）中，观察者或者 listener 如果采用弱引用，则不需要显式的移除
-     *          d.缓存
-     *      d.PhantomReference虚引用，该应用并不能获取到任何对象，也不会影响对象生命周期，主要是和引用队列一起使用，监控对象被回收的时候，做一些额外处理
-     *          a.通过虚引用可以知道一个对象何时被清除出内存。事实上，这也是唯一的途径
-     *          b.防止对象在 finalize 方法中被重新“救活”（可参考《深入理解 Java 虚拟机》一书）
-     *      e.ReferenceQueue引用队列，当引用对象所引用的值被回收了，该引用对象会被放到引用队列里面，不过需要我们手动处理来回收该引用对象，如WeakHashMap
-     *        引用队列一般和软引用，弱引用，虚引用一起用
      *
      * 4.String
      *   String类是不可改变的，创建了String对象，值就无法改变了。如需要对字符串做很多修改，使用StringBuffer & StringBuilder 类,并且不产生多个对象
