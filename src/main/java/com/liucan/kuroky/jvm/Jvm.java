@@ -10,16 +10,16 @@ package com.liucan.kuroky.jvm;
  *  https://blog.csdn.net/m0_37670016/article/details/112799155
  *
  *  31.jvm内存区域分配和gc（garbage collection）机制
- *      参考：https://www.cnblogs.com/zymyes2020/p/9052651.html
- *      https://www.cnblogs.com/xiaoxi/p/6486852.html
+ *      https://blog.csdn.net/tjiyu/article/details/53983650
  *      gc青年代，老年代，永久代理论是基于大多数对象的很快就会变得不可达，只有极少数情况会出现旧对象持有新对象的引用
  *      java,gc没有使用引用计数法来回收内存，引用计数法简单，高效，但是致命问题不能解决循环引用问题
  *
- *     一.gc
+ *  32.gc
+ *    一.算法
  *      1.stop-the-world:进行gc的时候，除了gc线程外其他线程都必须要停止下来，来进行gc工作，gc调优通常就是为了改善stop-the-world时间
  *      2.新生代：所有刚开始new的对象都会放入此，分为1个较大的Eden区，2个较小的Survivor区，经过在Survivor区的不停转移来进行gc，Eden区满了，清理并将还存在的对象放入
  *        Survivor1区， Survivor1区满了，清理并将Eden和Survivor1还存在的对象全部放入Survivor2，如此循环反复（Survivor区始终有一个是空的）， 寿命长的对象
- *        被转移到老年区，该方法就是停止-复制算法
+ *        被转移到老年区，该方法就是停止-复制算法,eden和survivor大小比例默认8:1:1
  *      3.老年代：
  *          a.标记-清除算法：标记所有需要回收的对象，再清除标记对象，坏处会产生很多内存碎片
  *          b.标记-整理算法：标记所有需要回收的对象，然后将存活对象向一端一端，清除掉其他内存，好处是不会产生内存碎片，坏处是效率较低需要大量的复制
@@ -29,7 +29,7 @@ package com.liucan.kuroky.jvm;
  *          b.加载该类的ClassLoader已经被回收
  *          c.该类对应的java.lang.Class对象没有在任何地方别引用，无法在任何地方通过反射访问该类的方法
  *        满足以上3个可以进行垃圾回收，但并不是马上就回收
- *      5.收集器：一般jvm是HotSpot
+ *     二.收集器：一般jvm是HotSpot
  *          新生代一般用停止复制算法，老年代一般用标记-清除和标记-整理算法
  *          a.新生代
  *              Serial New收集器(单线程停止复制算法)
@@ -41,11 +41,16 @@ package com.liucan.kuroky.jvm;
  *              Serial Old收集器（单线程标记-整理算法）
  *              Parallel Old收集器（多线程标记-整理算法）
  *              CMS（Concurrent Mark Sweep）收集器
- *                  1.以获取最短回收停顿时间为目标的收集器。使用标记 - 清除算法
- *                  2.缺点是在同步标记的会使用多线程耗费资源
- *                  3.在同步标记过程中产生新的对象，只能在下一次清除，带来的问题是如果这次失败了，那么下一次会很多，导致stop-the-world的时间很长
- *                  4.执行可以分为四个阶段：初始标记（Initial Mark）、并发标记（Concurrent Mark）、再次标记（Remark）、并发清除
- *              G1收集器:标记整理算法
+ *                  以获取最短回收停顿时间为目标的收集器。使用标记 - 清除算法
+ *                  过程：
+ *                      初始标记：标记gc root对象，速度快，需要stw
+ *                      并发标记：在标记的gc root对象里面，标出需要存活和回收的对象，不需要stw
+ *                      再次标记：修正并发标记里面的因用户线程导致变动的对象，需要stw
+ *                      并发清除：并发清除需要回收的对象，不需要stw
+ *                  缺点：
+ *                    同步标记的会使用多线程耗费资源
+ *                    产生内存碎片，无法处理浮动垃圾，可通过 -XX:+CMSFullGCsBeforeCompaction，设置执行多少次不压缩的Full GC后，来一次压缩整理
+ *           c.G1收集器(整堆收集器):标记整理算法
  *              https://blog.csdn.net/j3T9Z7H/article/details/80074460
  *              https://blog.csdn.net/moakun/article/details/80648253
  *              http://www.importnew.com/23752.html
@@ -54,17 +59,12 @@ package com.liucan.kuroky.jvm;
  *                  2.执行阶段：初始标记，并发标记，重新标记，复制/清除
  *                  3.老年代的清除算法有点像CMS算法，青年代的清除算法有点像停止复制算法
  *            在注重吞吐量以及CPU资源敏感的场合，都可以优先考虑Parallel Scavenge收集器+Parallel Old收集器的组合
- *       6.注意：
- *         可能存在年老代对象引用新生代对象的情况，如果需要执行Young GC，则可能需要查询整个老年代以确定是否可以清理回收，这显然是低效的。解决的方法是，
- *         年老代中维护一个512 byte的块——”card table“，所有老年代对象引用新生代对象的记录都记录在这里。Young GC时，只要查这里即可，
- *         不用再去查全部老年代，因此性能大大提高
- *       7.何时触发young gc和full gc
- *          a.yong gc:伊甸园区满的时候
- *          b.full gc:
- *              1.青年代进入老年代的时候，老年代的剩余空间不足
- *              2.system.gc()
- *              3.永久代的空间不足
- *              4.cms gc时因浮动垃圾太多，空间不足，也会full gc
+ *       三.何时触发full gc（major gc）
+ *           a. 调用System.gc时，系统建议执行Full GC，但是不必然执行
+ *           b. 老年代空间不足
+ *           c. 方法区空间不足
+ *           d. 通过Minor GC后进入老年代的平均大小大于老年代的可用内存
+ *           e. 年轻代需要把该对象转存到老年代，且老年代的可用内存小于该对象大小
  *
  *  8.如何判断对象是否可以回收或存活
  *     https://blog.csdn.net/u010002184/article/details/89364618
@@ -81,8 +81,10 @@ package com.liucan.kuroky.jvm;
  *           b.在可达性分析法标记的对象，里面判断对象的finalize方法里面是否有重新建立引用链关系（当前对象又被其他地方引用）
  *              如果有则对象逃离本次回收，继续存活（该自救的机会只有一次，因为一个对象的finalize()方法最多只会被系统自动调用一次）
  *
- *  9.jvm空间担保，主要是在年轻代在gs的时候，可能会空间不足，用老年代的空间做担保，判断老年代最大连续的空间是否
- *        大于年轻代最大空间或者老年代的最大空间是否大于历次进入的老年代的平均对象大学，然后才进行yong gc 否则full gc
+ *  9.jvm空间担保
+ *      a.主要是在年轻代在gc的时候，可能会空间不足，用老年代的空间做担保,将新生代存活对象放入老年代,新进入对象放入新生代
+ *      b.如：minor GC期间，虚拟机发现eden space的三个对象（6MB）又无法全部放入Survivor空间(Survivor可用内存只有1MB)
+ *      a.判断old最大连续space > new max space || old max space > 历次进入的老年代的平均对象大学，.然后才进行yong gc 否则full gc
  *
  *  10.cms和g1的特点和区别
  *       https://juejin.cn/post/6844903974676463629
