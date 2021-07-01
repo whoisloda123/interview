@@ -86,6 +86,15 @@ package com.liucan.kuroky.jvm;
  *      b.如：minor GC期间，虚拟机发现eden space的三个对象（6MB）又无法全部放入Survivor空间(Survivor可用内存只有1MB)
  *      a.判断old最大连续space > new max space || old max space > 历次进入的老年代的平均对象大学，.然后才进行yong gc 否则full gc
  *
+ *  10.安全点（safe point）和安全域（save region）（或者说，如何让所有线程停止的？）
+ *      https://www.cnblogs.com/newAndHui/p/12246015.html
+ *      a.安全点
+ *          所有用户线程到最近的safe point之后，休眠，然后执行gc
+ *          一般选择执行时间比较长的或者异常跳转作为safe point
+ *      b.如果检测所有线程都到了safe point 了？
+ *          jvm设置一个中断标志，用户线程跑到safe point是轮询标志，如果为true则挂起当前线程
+ *          当gc完后中断标志设置为false，线程继续执行
+ *      c.安全域：防止线程sleep的时候，无法处理中断请求，在⼀段代码⽚段中，对象的引⽤关系不会发⽣变化，在这个区域中的任何位置开始GC都是安全的
  *  10.cms和g1的特点和区别
  *       https://juejin.cn/post/6844903974676463629
  *
