@@ -68,7 +68,7 @@ package com.liucan.kuroky.jvm;
  *                  1.以获取最短回收停顿时间为目标的收集器。使用标记 - 清除算法
  *                  2.过程：
  *                      初始标记：标记gc root对象，速度快，需要stw
- *                      并发标记：在标记的gc root对象里面，标出需要存活和回收的对象，耗时长，不需要stw
+ *                      并发标记：在标记的gc root对象里面，通过可达性分析法标出需要存活和回收的对象，耗时长，不需要stw
  *                      再次标记：修正并发标记里面的因用户线程导致变动的对象，需要stw
  *                      并发清除：并发清除需要回收的对象，不需要stw（由于不需要移动存活对象，可以并发）
  *                   由于最耗费时间的并发标记与并发清除阶段都不需要暂停⼯作，所以整体的回收是低停顿的。
@@ -81,7 +81,7 @@ package com.liucan.kuroky.jvm;
  *                    c.无法处理浮动垃圾，并发清理过程中，用户线程又产生新的垃圾，只能等到下一次回收，这部分垃圾称为浮动垃圾
  *                  5.参数：
  *                      -XX:+UseConcMarkSweepGC
- *                      -XX:CMSInitiatingOccupancyFraction： 设置堆内存使⽤率的阀值，⼀旦达到该阀值，便开始进⾏回收
+ *                      -XX:CMSInitiatingOccupancyFraction： 设置堆内存使⽤率的阀值，⼀旦达到该阀值，便开始进⾏回收cms
  *                      -XX:+UseCMSCompactAtFullCollection：⽤于指定在执⾏完FullGC后对内存空间进⾏压缩整理
  *                      -XX:CMSFullGCsBeforeCompaction：设置在执⾏多少次Full GC后对内存空间进⾏验收整理
  *                      -XX:ParallelCMSThreads：设置CMS的线程数量，CMS默认启动的线程数(CPU数量+3)/4
