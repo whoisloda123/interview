@@ -60,7 +60,7 @@ package com.liucan.kuroky.jvm;
  *              ParNew收集器（多线程停止复制算法）
  *              Parallel Scavenge收集器（多线程停止复制算法）
  *            Parallel Scavenge收集器关注的是吞吐量（垃圾器收集的时间和总运行时间比例），虚拟机运行在Server模式下的默认垃圾收集器，
- *            而其他2个关注的是每次停顿时间
+ *            而其他2个关注的是每次停顿时间， 在注重吞吐量以及CPU资源敏感的场合，都可以优先考虑Parallel Scavenge收集器+Parallel Old收集器的组合
  *          b.老年代
  *              Serial Old收集器（单线程标记-整理算法）
  *              Parallel Old收集器（多线程标记-整理算法）
@@ -85,15 +85,30 @@ package com.liucan.kuroky.jvm;
  *                      -XX:+UseCMSCompactAtFullCollection：⽤于指定在执⾏完FullGC后对内存空间进⾏压缩整理
  *                      -XX:CMSFullGCsBeforeCompaction：设置在执⾏多少次Full GC后对内存空间进⾏验收整理
  *                      -XX:ParallelCMSThreads：设置CMS的线程数量，CMS默认启动的线程数(CPU数量+3)/4
- *           c.G1收集器(整堆收集器):标记整理算法
- *              https://blog.csdn.net/j3T9Z7H/article/details/80074460
- *              https://blog.csdn.net/moakun/article/details/80648253
- *              http://www.importnew.com/23752.html
- *                  1.堆内存分为很多区域（几千多个左右），每个分区可能是青年代的伊甸园区或survivor区，老年代区，
- *                          年轻代，老年代的概念还在，但是只是逻辑上的概念，物理上已经不分了
- *                  2.执行阶段：初始标记，并发标记，重新标记，复制/清除
- *                  3.老年代的清除算法有点像CMS算法，青年代的清除算法有点像停止复制算法
- *            在注重吞吐量以及CPU资源敏感的场合，都可以优先考虑Parallel Scavenge收集器+Parallel Old收集器的组合
+ *            G1（garbage first,全功能垃圾收集器）:标记整理算法
+ *              1.概念：
+ *                  a.堆内存分为很多区域（几千多个左右），每个分区可能是青年代的eden或survivor区，老年代区，年轻代，老年代的概念还在，只是逻辑上的概念，物理上不分
+ *                  b.在延迟可控的情况下获得尽可能⾼的吞吐量
+ *                  c.能建⽴可预测的停顿时间模型
+ *              2.阶段：
+ *                  a.老年代执行阶段：初始标记，并发标记，重新标记，复制/清除，和cms差不多
+ *                  3.老年代的清除算法有点像CMS算法，青年代的清除算法有点像停止复制算法，只是在region里面进行的
+ *              3.优点：
+ *                  a.并行，并发
+ *                  b.可预测的停顿时间模型：
+ *                      1.在给定的停顿时间下，总能选择一组恰当的region来回收，之所以能建⽴可预测的停顿时间模型，是因为它可以有计划地避免在整个java堆中进⾏全区域的垃圾收集
+ *                      2.G1跟踪各个Region⾥⾯的垃圾堆积的价值⼤⼩，后台维护优先列表，每次根据允许的收集时间，优先回收价值最⼤的Region
+ *                      3.停顿模型是以衰减均值（Decaying Average）为理论基础来实现的(根据每个 Region 的回收耗时、记忆集中的脏卡数量等，分析得出平均值、标准偏差)
+ *              4.缺点：
+ *                  a.G1内存占⽤和额外执⾏负载都要⽐CMS要⾼
+ *                  b.⼩内存应⽤上， CMS ⼤概率会优于 G1，⼤内存应⽤上， G1 则很可能更胜⼀筹，临界值6-8g
+ *              5.参数：
+ *                  -XX:+UseG1GC
+ *                  ‐XX:G1HeapRegionSize：默认是堆内存的1/2000
+ *                  ‐XX:MaxGCPauseMillis：默认是200ms
+ *                  ‐XX:InitiatingHeapOccupancyPercent ：到堆内存的默认45%则进行gc（老年代的并发标记）
+ *                  -XX:ParallelGCThread 设置STW⼯作线程数的值。最多设置为8
+ *                  -XX:ConcGCThreads 设置并发标记的线程数。设置为CPU数量的1/4左右
  *
  *  9.jvm空间担保
  *      a.主要是在年轻代在gc的时候，可能会空间不足，用老年代的空间做担保,将新生代存活对象放入老年代,新进入对象放入新生代
