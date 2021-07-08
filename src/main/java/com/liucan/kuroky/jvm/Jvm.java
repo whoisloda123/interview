@@ -7,12 +7,9 @@ package com.liucan.kuroky.jvm;
  *   c.如果jvm最大内存大于32G，则会表示不了，不采用指针压缩机制，这样导致指针其实也占内存
  *
  *  2.java对象内存布局
- *  https://blog.csdn.net/m0_37670016/article/details/112799155
- *
- *  31.jvm内存区域分配和gc（garbage collection）机制
- *      https://blog.csdn.net/tjiyu/article/details/53983650
- *      gc青年代，老年代，永久代理论是基于大多数对象的很快就会变得不可达，只有极少数情况会出现旧对象持有新对象的引用
- *      java,gc没有使用引用计数法来回收内存，引用计数法简单，高效，但是致命问题不能解决循环引用问题
+ *     a.对象头（Header）：哈希码（HashCode），GC分代年龄，锁状态标志，线程持有的 锁，偏向线程ID，偏向时间戳
+ *     b.实例数据（Instance Data）：存储的是对象真正有效的信息
+ *     c.对齐填充（Padding）：过对齐填充来补全是8字节的整数倍
  *
  *  32.gc
  *    一.触发条件
@@ -40,12 +37,8 @@ package com.liucan.kuroky.jvm;
  *       a.引用计数法：每个对象有个计数引用，如果为0，则可以回收，致命缺点：不能解决循环引用问题
  *       b.可达性分析法
  *         1.通过定义的GC-Root一直对引用的对象向下遍历，形成一个引用链，当发现一些对象不可达时，则认为该对象不可用需要回收
- *         2.GC Root的对象
- *            a.jvm虚拟机栈对象
- *            b.静态对象
- *            c.常量对象
- *            d.native本地方法栈对象
- *        c.被可达性分析法命中的对象不一定会被回收，需要2次标记之后才会被回收
+ *         2.GC Root的对象:vm虚拟机栈对象,静态对象,常量对象,native本地方法栈对象
+ *       c.被可达性分析法命中的对象不一定会被回收，需要2次标记之后才会被回收
  *           a.可达性分析法后标记
  *           b.在可达性分析法标记的对象，里面判断对象的finalize方法里面是否有重新建立引用链关系（当前对象又被其他地方引用）
  *              如果有则对象逃离本次回收，继续存活（该自救的机会只有一次，因为一个对象的finalize()方法最多只会被系统自动调用一次）
@@ -53,8 +46,7 @@ package com.liucan.kuroky.jvm;
  *          a.停止复制算法:适合对象很快会回收，存活对象小
  *          a.标记-清除算法：标记所有需要回收的对象，再清除标记对象，坏处会产生很多内存碎片
  *          b.标记-整理算法：标记所有需要回收的对象，然后将存活对象向一端一端，清除掉其他内存，好处是不会产生内存碎片，坏处是效率较低需要大量的复制
- *    三.收集器：一般jvm是HotSpot
- *          新生代一般用停止复制算法，老年代一般用标记-清除和标记-整理算法
+ *    三.收集器
  *          a.新生代
  *              Serial New收集器(单线程停止复制算法)
  *              ParNew收集器（多线程停止复制算法）
@@ -85,7 +77,7 @@ package com.liucan.kuroky.jvm;
  *                      -XX:+UseCMSCompactAtFullCollection：⽤于指定在执⾏完FullGC后对内存空间进⾏压缩整理
  *                      -XX:CMSFullGCsBeforeCompaction：设置在执⾏多少次Full GC后对内存空间进⾏验收整理
  *                      -XX:ParallelCMSThreads：设置CMS的线程数量，CMS默认启动的线程数(CPU数量+3)/4
- *            G1（garbage first,全功能垃圾收集器）:标记整理算法
+ *           c.G1（garbage first,全功能垃圾收集器）:标记整理算法
  *              1.概念：
  *                  a.堆内存分为很多区域（几千多个左右），每个分区可能是青年代的eden或survivor区，老年代区，年轻代，老年代的概念还在，只是逻辑上的概念，物理上不分
  *                  b.在延迟可控的情况下获得尽可能⾼的吞吐量
@@ -94,16 +86,18 @@ package com.liucan.kuroky.jvm;
  *                  a.老年代执行阶段：初始标记，并发标记，重新标记，复制/清除，和cms差不多
  *                  b.老年代的清除算法有点像CMS算法，青年代的清除算法有点像停止复制算法，只是在region里面进行的
  *                  c.mixed gc：回收所有年轻代对象和部分老年代对象，由参数 -XX:InitiatingHeapOccupancyPercent=n 决定。默认：45%
- *              3.优点：
+ *              3.记忆集 Remembered Set,卡表
+ *                  ？
+ *              4.优点：
  *                  a.并行，并发
  *                  b.可预测的停顿时间模型：
  *                      1.在给定的停顿时间下，总能选择一组恰当的region来回收，之所以能建⽴可预测的停顿时间模型，是因为它可以有计划地避免在整个java堆中进⾏全区域的垃圾收集
  *                      2.G1跟踪各个Region⾥⾯的垃圾堆积的价值⼤⼩，后台维护优先列表，每次根据允许的收集时间，优先回收价值最⼤的Region
  *                      3.停顿模型是以衰减均值（Decaying Average）为理论基础来实现的(根据每个 Region 的回收耗时、记忆集中的脏卡数量等，分析得出平均值、标准偏差)
- *              4.缺点：
+ *              5.缺点：
  *                  a.G1内存占⽤和额外执⾏负载都要⽐CMS要⾼
  *                  b.⼩内存应⽤上， CMS ⼤概率会优于 G1，⼤内存应⽤上， G1 则很可能更胜⼀筹，临界值6-8g
- *              5.参数：
+ *              6.参数：
  *                  -XX:+UseG1GC
  *                  ‐XX:G1HeapRegionSize：默认是堆内存的1/2000
  *                  ‐XX:MaxGCPauseMillis：默认是200ms
@@ -125,39 +119,37 @@ package com.liucan.kuroky.jvm;
  *          jvm设置一个中断标志，用户线程跑到safe point是轮询标志，如果为true则挂起当前线程
  *          当gc完后中断标志设置为false，线程继续执行
  *      c.安全域：防止线程sleep的时候，无法处理中断请求，在⼀段代码⽚段中，对象的引⽤关系不会发⽣变化，在这个区域中的任何位置开始GC都是安全的
- *  10.cms和g1的特点和区别
- *       https://juejin.cn/post/6844903974676463629
  *
- *     二.运行内存分布
- *      1.堆区
- *      2.方法区：存储已加载的类信息（版本，field，方法，接口等等），常量池（final常量，静态常量）等等
- *      3.虚拟机栈：普通方法栈，方法执行是一个入栈和出栈的过程
+ *  11.运行内存分布
+ *      a.堆区
+ *      b.方法区：存储已加载的类信息（版本，field，方法，接口等等），常量池（final常量，静态常量）等等
+ *      c.虚拟机栈：普通方法栈，方法执行是一个入栈和出栈的过程
  *          a.栈由一系列帧组成（因此Java栈也叫做帧栈）先进后出的数据结构
  *          b.每一次方法调用创建一个新的帧，并压栈
- *      4.本地方法栈：native方法栈
- *      5.程序计数器（PC寄存器）：记录当前线程执行的字节码到第几行
+ *      d.本地方法栈：native方法栈
+ *      e.程序计数器（PC寄存器）：记录当前线程执行的字节码到第几行
  *      其中堆区和方法区线程共享，其他非线程共享
  *
- *     三.jvm调优
- *      https://www.jianshu.com/p/4b4519f97c92
- *      1.看下jvm相关的书
- *      2.一般jvm调优的话，就是java -Xmx3550m -Xms3550m -Xmn2g -Xss128k -XX:ParallelGCThreads=20 -XX:+UseConcMarkSweepGC -XX:+UseParNewG
- *      3.调优常用命令：
- *          -Xms:初始内存大小
- *          -Xmx:最大内存大小
- *          -Xss:每个线程堆栈大小
- *          -Xmn:年轻代大小
- *          -XX:NewSize=n设置年轻代大小
- *          -XX:NewRatio=n:设置年轻代和年老代的比值
- *          -XX:MaxPermSize=n:设置持久代大小
- *          -XX:+UseSerialGC:设置串行收集器
- *       4.一般堆的初始大小和最大大小设为一样的
- *       为什么了？为了减少堆扩容的时候，消除扩容时候stop-the-world的，表现在应用上面可能是有时候会出现卡顿
- *       5.频繁出现fullgc的原因和解决版办法？
- *       https://www.jianshu.com/p/e749782fff2b
- *
- *   32.jvm
- *    1.每个java程序运行起来就会产生一个jvm实例，java程序结束jvm实例就会消失
+ *   12.jvm调优
+ *      a.常用参数
+ *              –Xms4g -Xmx4g –Xmn1200m –Xss512k -XX:NewRatio=4 -XX:SurvivorRatio=8 -XX:PermSize=100m -XX:MaxPermSize=256m -XX:MaxTenuringThreshold=15
+ *              -XX:MaxDirectMemorySize=1G -XX:+DisableExplicitGC -XX:+PrintGCDetails -XX:+PrintGCDateStamps
+ *              -Xloggc:/home/hadoop/gc.out
+ *              -XX:+UseGCLogFileRotation
+ *              -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=512k
+ *              -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/Users/hadoop
+ *      b.为什么一般堆的初始大小和最大大小设为一样的
+ *         为了减少堆扩容的时候，消除扩容时候stop-the-world的，表现在应用上面可能是有时候会出现卡顿，建议扩⼤⾄3-4倍FullGC后的⽼年代空间占⽤
+ *      c.jdk命令行
+ *         jps:查看java进程
+ *         jstat：查看java进程相关信息
+ *         jmap:查看java堆内存相关信息
+ *         jstack：查看java线程堆栈信息
+ *         jvisualVM:在线查看运行jvm相关信息，包括内存，堆等信息，基本上包含了上面的命令
+ *      d.内存占用高，频繁出现fullgc的原因和解决版办法
+ *         a.打开打印gc日志选项，查看gc日志，可以通过gc easy在线网址解析gc日志，分析gc信息
+ *         b.top -Hp pid找到进程占用cpu高的线程
+ *         c.jstack pid|grep tid找到线程堆栈信息，查看cpu占用高原因
  *
  *   33.类加载
  *    一.过程：jvm类加载过程包括 加载-链接（校验-准备-解析）-初始化
@@ -217,6 +209,7 @@ package com.liucan.kuroky.jvm;
  *          b.防止对象在 finalize 方法中被重新“救活”（可参考《深入理解 Java 虚拟机》一书）
  *      e.ReferenceQueue引用队列，当引用对象所引用的值被回收了，该引用对象会被放到引用队列里面，不过需要我们手动处理来回收该引用对象，如WeakHashMap
  *        引用队列一般和软引用，弱引用，虚引用一起用
+ *
  *  四.堆外内存
  */
 public interface Jvm {
