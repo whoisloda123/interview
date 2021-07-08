@@ -217,7 +217,7 @@ package com.liucan.kuroky.jvm;
  *          b.防止对象在 finalize 方法中被重新“救活”（可参考《深入理解 Java 虚拟机》一书）
  *      e.ReferenceQueue引用队列，当引用对象所引用的值被回收了，该引用对象会被放到引用队列里面，不过需要我们手动处理来回收该引用对象，如WeakHashMap
  *        引用队列一般和软引用，弱引用，虚引用一起用
- *
+ *  四.堆外内存
  */
 public interface Jvm {
 
