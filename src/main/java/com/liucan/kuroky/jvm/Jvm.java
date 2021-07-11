@@ -66,7 +66,7 @@ package com.liucan.kuroky.jvm;
  *                   由于最耗费时间的并发标记与并发清除阶段都不需要暂停⼯作，所以整体的回收是低停顿的。
  *                  3.优点：并发收集，低停顿
  *                  4.缺点：
- *                    a.同步标记的会使用多线程耗费资源，CMS收集器对CPU资源⾮常敏感
+ *                    a.同步标记的会使用多线程耗费资源，CMS收集器对CPU资源⾮常敏感，如果在CMS运⾏期间预留的内存⽆法满⾜程序需要临时启动Serial Old收集器进⾏⽼年的垃圾收集
  *                    b.产生内存碎片，收集结束时有大量的内存碎片产生，可能会导致空间不够而提前触发full gc，
  *                      可通过 -XX:+CMSFullGCsBeforeCompaction，设置执行多少次不压缩的Full GC后，来一次压缩整理
  *                      既然会造成内存碎⽚,为什么不把算法换成Mark Compact(标记复制)：因为并发清除需要和用户线程同步进行（保证用户的内存可以用），
@@ -82,14 +82,17 @@ package com.liucan.kuroky.jvm;
  *                  a.堆内存分为很多区域（几千多个左右），每个分区可能是青年代的eden或survivor区，老年代区，年轻代，老年代的概念还在，只是逻辑上的概念，物理上不分
  *                  b.在延迟可控的情况下获得尽可能⾼的吞吐量
  *                  c.能建⽴可预测的停顿时间模型
+ *                  d.主要针对配备多核CPU及⼤容量内存的机器
  *              2.阶段：
  *                  a.老年代执行阶段：初始标记，并发标记，重新标记，复制/清除，和cms差不多
  *                  b.老年代的清除算法有点像CMS算法，青年代的清除算法有点像停止复制算法，只是在region里面进行的
  *                  c.mixed gc：回收所有年轻代对象和部分老年代对象，由参数 -XX:InitiatingHeapOccupancyPercent=n 决定。默认：45%
- *              3.记忆集 Remembered Set,卡表
- *                  ？
+ *              3.卡表，记忆集 Remembered Set
+ *                  a.在进行gc的时候可能出现老年代对象应用年轻代对象或其他region应用该region现象，但是不可能扫描所有老年代对象
+ *                  b.通过卡表记录了老年代是否引用了当前对象来避免扫描老年代，如果引用了，加入到gc root对象里面
+ *                  c.通过写屏障（在写入内存的时候做一些额外操作）来实现，每次Reference类型数据写操作时，记录引用记录
  *              4.优点：
- *                  a.并行，并发
+ *                  a.并行，并发，不会再整个回收阶段发⽣完全阻塞应⽤程序的情况
  *                  b.可预测的停顿时间模型：
  *                      1.在给定的停顿时间下，总能选择一组恰当的region来回收，之所以能建⽴可预测的停顿时间模型，是因为它可以有计划地避免在整个java堆中进⾏全区域的垃圾收集
  *                      2.G1跟踪各个Region⾥⾯的垃圾堆积的价值⼤⼩，后台维护优先列表，每次根据允许的收集时间，优先回收价值最⼤的Region
@@ -138,6 +141,7 @@ package com.liucan.kuroky.jvm;
  *              -XX:+UseGCLogFileRotation
  *              -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=512k
  *              -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/Users/hadoop
+ *        -Xms -Xmx 建议扩⼤⾄3-4倍FullGC后的⽼年代空间占⽤
  *      b.为什么一般堆的初始大小和最大大小设为一样的
  *         为了减少堆扩容的时候，消除扩容时候stop-the-world的，表现在应用上面可能是有时候会出现卡顿，建议扩⼤⾄3-4倍FullGC后的⽼年代空间占⽤
  *      c.jdk命令行
@@ -150,6 +154,9 @@ package com.liucan.kuroky.jvm;
  *         a.打开打印gc日志选项，查看gc日志，可以通过gc easy在线网址解析gc日志，分析gc信息
  *         b.top -Hp pid找到进程占用cpu高的线程
  *         c.jstack pid|grep tid找到线程堆栈信息，查看cpu占用高原因
+ *      e.
+ *          监控分析：分析gc日志（gc easy在线工具）和dump文件（jpofile）
+ *          遇到以下情况，就需要考虑进⾏JVM调优：Full GC 次数频繁，GC 停顿时间过⻓（超过1秒），⽤出现OutOfMemory 等内存异常等
  *
  *   33.类加载
  *    一.过程：jvm类加载过程包括 加载-链接（校验-准备-解析）-初始化
@@ -159,7 +166,7 @@ package com.liucan.kuroky.jvm;
  *          c.堆中生成java.lang.Class对象，代表加载的对象，作为数据访问入口
  *      2.链接
  *          a.验证：确保加载的类符合规范和安全
- *          b.准备：为static变量分配空间，设置变量初始值，不包括static fanil对象(直接在编译的时候就赋值了)
+ *          b.准备：为static变量分配空间，设置变量初始值，不包括static final对象(直接在编译的时候就赋值了)
  *          c.解析：将常量池的符号引用（如符号引用是：类的全路径）转换为直接引用（具体类的指针）
  *      3.初始化
  *          a.执行类构造器<clinit>()方法,对静态变量手动赋值，执行静态语句块static{}
@@ -192,8 +199,14 @@ package com.liucan.kuroky.jvm;
  *  jvm执行代码
  *      a.解释执行
  *      b.jit:动态编译,在运行时编译生成可运行的数据,只有热点代码才会动态编译（如被多次调用的代码）
- *  逃逸分析：分析一个对象的引用范围
- *      如分析方法内的对象引用是否会被外部引用，来决定是否需要在栈上分配而不是队上
+ *  jit优化：
+ *      逃逸分析：
+ *          分析一个对象的引用范围如分析方法内的对象引用是否会被外部引用，来决定是否需要在栈上分配而不是队上
+ *          -XX:+DoEscapeAnalysis ： 表示开启逃逸分析，1.7以上默认开启了
+ *      公共子表达式的消除：表达式E已经计算过了，且后续结果也是一样的，没必要再计算
+ *      同步锁消除：同样基于逃逸分析，当加锁的变量不会发生逃逸，是线程私有的完全没有必要加锁
+ *  是不是所有的对象和数组都会在堆内存分配空间？
+ *      不一定，因为逃逸分析
  *
  * 26.Reference（强引用，软引用，弱引用，虚引用,引用队列）
  *      a.StrongReference强引用，经常用到，只要强引用还在就GC不会回收，可用赋值null方式手动回收
@@ -211,6 +224,20 @@ package com.liucan.kuroky.jvm;
  *        引用队列一般和软引用，弱引用，虚引用一起用
  *
  *  四.堆外内存
+ *      https://juejin.cn/post/6844903710766661639
+ *     a.jvm内存里面gc是有成本的，有stw，而堆外内存是直接从操作系统获取，通过DirectByteBuffer来申请堆外内存（底层调用Unsafe），和主动释放内存
+ *     b.回收也不是jvm完全不管，因为是通过DirectByteBuffer来申请的,，而DirectByteBuffer是有jvm管控的，在DirectByteBuffer需要被回收的时候
+ *       通过里面的虚引用cleaner来监控该对象回收，然后释放对应的堆外内存
+ *     c.申请过程
+ *          1.如果内存不够，调用System.gc主动触发full gc，因为可能出现‘冰山现象’（DirectByteBuffer对象本身小，但引用对象大，而且在老年代）
+ *              注：-XX:+DisableExplicitGC，那System.gc()(另外一个Runtime getRuntime().gc()也会触发fullgc);
+ *              是无效的，堆外内存使用频繁的场合，不要擅自开启-XX:+DisableExplicitGC开关进行“优化”
+ *          2.重新尝试获取几次，未获取到抛出oom Direct buffer memory
+ *     d.优点：
+ *          1.不用gc，减少stw，可以扩展更大空间
+ *     e.缺点：
+ *          1.堆外内存难以控制，如果内存泄漏，那么很难排查
+ *          2.需要序列化和反序列化
  */
 public interface Jvm {
 
