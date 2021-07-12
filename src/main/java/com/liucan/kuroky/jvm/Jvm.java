@@ -26,11 +26,11 @@ package com.liucan.kuroky.jvm;
  *        a.该类所有的实例已经被回收
  *        b.加载该类的ClassLoader已经被回收
  *        c.该类对应的java.lang.Class对象没有在任何地方别引用，无法在任何地方通过反射访问该类的方法
- *     4.full gc（minor gc + major gc）
- *           a.调用System.gc时，系统建议执行Full GC，但是不必然执行
+ *     4.full gc（minor gc + major gc+ perm gc）
+ *           a.调用System.gc，Runtime.run().gc()时，系统建议执行Full GC，但是不必然执行
  *           b.由Eden区、 from survivor区向to survivor区复制时，对象⼤⼩⼤于to survivor可⽤内存，则把该对象转存到⽼年代，且⽼年代的可⽤内存⼩于该对象⼤⼩
- *           c.通过Minor GC后进⼊⽼年代的平均⼤⼩⼤于⽼年代的可⽤内存
- *           d.老年代空间不足(⽼年代空间只有在新⽣代对象转⼊及创建为⼤对象、⼤数组时才会出现不⾜的现象)
+ *           c.老年代空间不足(⽼年代空间只有在新⽣代对象转⼊及创建为⼤对象、⼤数组时才会出现不⾜的现象)
+ *           d.通过Minor GC后进⼊⽼年代的平均⼤⼩⼤于⽼年代的可⽤内存
  *           e.方法区空间不足
  *   二.如何判断对象是否可以回收或存活
  *     https://blog.csdn.net/u010002184/article/details/89364618
@@ -46,6 +46,7 @@ package com.liucan.kuroky.jvm;
  *          a.停止复制算法:适合对象很快会回收，存活对象小
  *          a.标记-清除算法：标记所有需要回收的对象，再清除标记对象，坏处会产生很多内存碎片
  *          b.标记-整理算法：标记所有需要回收的对象，然后将存活对象向一端一端，清除掉其他内存，好处是不会产生内存碎片，坏处是效率较低需要大量的复制
+ *
  *    三.收集器
  *          a.新生代
  *              Serial New收集器(单线程停止复制算法)
@@ -75,7 +76,7 @@ package com.liucan.kuroky.jvm;
  *                      -XX:+UseConcMarkSweepGC
  *                      -XX:CMSInitiatingOccupancyFraction： 设置堆内存使⽤率的阀值，⼀旦达到该阀值，便开始进⾏回收cms
  *                      -XX:+UseCMSCompactAtFullCollection：⽤于指定在执⾏完FullGC后对内存空间进⾏压缩整理
- *                      -XX:CMSFullGCsBeforeCompaction：设置在执⾏多少次Full GC后对内存空间进⾏验收整理
+ *                      -XX:CMSFullGCsBeforeCompaction：设置在执⾏多少次Full GC后对内存空间进⾏验收整理，,默认是0（每次）
  *                      -XX:ParallelCMSThreads：设置CMS的线程数量，CMS默认启动的线程数(CPU数量+3)/4
  *           c.G1（garbage first,全功能垃圾收集器）:标记整理算法
  *              1.概念：
@@ -94,7 +95,8 @@ package com.liucan.kuroky.jvm;
  *              4.优点：
  *                  a.并行，并发，不会再整个回收阶段发⽣完全阻塞应⽤程序的情况
  *                  b.可预测的停顿时间模型：
- *                      1.在给定的停顿时间下，总能选择一组恰当的region来回收，之所以能建⽴可预测的停顿时间模型，是因为它可以有计划地避免在整个java堆中进⾏全区域的垃圾收集
+ *                      1.在给定的停顿时间下，总能选择一组恰当的（耗时嘴袋短，垃圾最多）region来回收，之所以能建⽴可预测的停顿时间模型，
+ *                        是因为它可以有计划地避免在整个java堆中进⾏全区域的垃圾收集
  *                      2.G1跟踪各个Region⾥⾯的垃圾堆积的价值⼤⼩，后台维护优先列表，每次根据允许的收集时间，优先回收价值最⼤的Region
  *                      3.停顿模型是以衰减均值（Decaying Average）为理论基础来实现的(根据每个 Region 的回收耗时、记忆集中的脏卡数量等，分析得出平均值、标准偏差)
  *              5.缺点：
@@ -103,7 +105,7 @@ package com.liucan.kuroky.jvm;
  *              6.参数：
  *                  -XX:+UseG1GC
  *                  ‐XX:G1HeapRegionSize：默认是堆内存的1/2000
- *                  ‐XX:MaxGCPauseMillis：默认是200ms
+ *                  ‐XX:MaxGCPauseMillis：默认是200ms，设置停顿时间
  *                  ‐XX:InitiatingHeapOccupancyPercent ：到堆内存的默认45%则进行gc（老年代的并发标记）
  *                  -XX:ParallelGCThread 设置STW⼯作线程数的值。最多设置为8
  *                  -XX:ConcGCThreads 设置并发标记的线程数。设置为CPU数量的1/4左右
@@ -155,7 +157,7 @@ package com.liucan.kuroky.jvm;
  *         b.top -Hp pid找到进程占用cpu高的线程
  *         c.jstack pid|grep tid找到线程堆栈信息，查看cpu占用高原因
  *      e.
- *          监控分析：分析gc日志（gc easy在线工具）和dump文件（jpofile）
+ *          监控分析：分析gc日志（gc easy在线工具）和dump文件（jprofile）
  *          遇到以下情况，就需要考虑进⾏JVM调优：Full GC 次数频繁，GC 停顿时间过⻓（超过1秒），⽤出现OutOfMemory 等内存异常等
  *
  *   33.类加载
@@ -169,14 +171,7 @@ package com.liucan.kuroky.jvm;
  *          b.准备：为static变量分配空间，设置变量初始值，不包括static final对象(直接在编译的时候就赋值了)
  *          c.解析：将常量池的符号引用（如符号引用是：类的全路径）转换为直接引用（具体类的指针）
  *      3.初始化
- *          a.执行类构造器<clinit>()方法,对静态变量手动赋值，执行静态语句块static{}
- *      4.clinit和init区别
- *          参考：https://blog.csdn.net/u013309870/article/details/72975536
- *          a.init是对象构造器方法，在new一个对象时候，调用构造函数
- *          b.  1.clinit是类构造器方法，在类加载的初始化阶段，只会加载一次，执行类变量赋值和静态语句块
- *              2.子类clinit执行会保证父类的clinit执行
- *              3.接口的clinit执行不会执行父接口的clinit方法，只有父接口定义变量使用才会初始化
- *              4.接口实现类初始化一样不会执行接口的clinit方法
+ *          a.执行类构造器<clinit>()方法,对静态变量手动赋值，执行静态语句块static
  *
  *    二.类加载器
  *      1.加载器
@@ -201,7 +196,7 @@ package com.liucan.kuroky.jvm;
  *      b.jit:动态编译,在运行时编译生成可运行的数据,只有热点代码才会动态编译（如被多次调用的代码）
  *  jit优化：
  *      逃逸分析：
- *          分析一个对象的引用范围如分析方法内的对象引用是否会被外部引用，来决定是否需要在栈上分配而不是队上
+ *          分析一个对象的引用范围如分析方法内的对象引用是否会被外部引用，来决定是否需要在栈上分配而不是堆上
  *          -XX:+DoEscapeAnalysis ： 表示开启逃逸分析，1.7以上默认开启了
  *      公共子表达式的消除：表达式E已经计算过了，且后续结果也是一样的，没必要再计算
  *      同步锁消除：同样基于逃逸分析，当加锁的变量不会发生逃逸，是线程私有的完全没有必要加锁
@@ -229,7 +224,7 @@ package com.liucan.kuroky.jvm;
  *     b.回收也不是jvm完全不管，因为是通过DirectByteBuffer来申请的,，而DirectByteBuffer是有jvm管控的，在DirectByteBuffer需要被回收的时候
  *       通过里面的虚引用cleaner来监控该对象回收，然后释放对应的堆外内存
  *     c.申请过程
- *          1.如果内存不够，调用System.gc主动触发full gc，因为可能出现‘冰山现象’（DirectByteBuffer对象本身小，但引用对象大，而且在老年代）
+ *          1.如果内存不够，调用System.gc主动触发full gc，因为可能出现‘冰山现象’（DirectByteBuffer对象本身小在老年代，但引用对象大）
  *              注：-XX:+DisableExplicitGC，那System.gc()(另外一个Runtime getRuntime().gc()也会触发fullgc);
  *              是无效的，堆外内存使用频繁的场合，不要擅自开启-XX:+DisableExplicitGC开关进行“优化”
  *          2.重新尝试获取几次，未获取到抛出oom Direct buffer memory
