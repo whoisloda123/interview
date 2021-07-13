@@ -36,6 +36,15 @@ import java.util.concurrent.TimeUnit;
  *      c.observer:不参与投票，将请求转发给leader，目的是扩展系统，提供读取速度
  *  8.工作原理
  *      a.zk核心是原子广播，采用zab协议，该协议有2种模式：恢复模式（选主）和广播模式（通过状态）
+ *  9.zk和eureka区别
+ *      https://mp.weixin.qq.com/s/YDHk8uwN8VAkt8NXEs4lRg
+ *    zk：cp是强一致性，当leader挂了之后，进行选举一般200ms-60000ms，期间整个集群不可用
+ *    eureka：ap是最终一致性，选举期间还可以使用，只是不是最新的
+ *      a.点对点，没有主从，节点之间通过心态机制感知对方
+ *      b.如果eureka service挂掉之后，eureka client会自动切换到新的eureka service节点上面
+ *      c.当宕机的服务器重新恢复后，Eureka 会再次将其纳入到服务器集群管理之中,尝试从邻近节点获取所有注册列表信息
+ *      d.Eureka Server 节点在短时间内丢失过多的心跳时，那么这个节点就会进入自我保护模式(不再移除因为长时间没有收到心跳而过期的服务，
+ *        仍然能够接受新服务注册和查询请求，但是不会被同步到其它节点上)
  */
 @Slf4j
 @Service
