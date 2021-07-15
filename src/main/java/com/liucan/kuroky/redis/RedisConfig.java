@@ -93,6 +93,39 @@ package com.liucan.kuroky.redis;
  *      b.用zk分布式锁（因为是强一致性，不会出现redis分布式锁的问题），来保证同一时刻只有一个操作，如果A系统拿到了，后面B，C只能等待
  *      c.如果要写入数据库的时候，判断一下要写入的时间是否比数据库里面的时间新，如果是则可以，否者不行
  *
+ * 八.分布式锁
+ *  a.mysql
+ *      使用mysql乐观和悲观锁
+ *          优点：简单
+ *          缺点：性能不行
+ *  b.redis：
+ *      1.加锁
+ *          正确：set（key, value, nx, px, time）
+ *          错误：setnx和setex执行
+ *          原因：没有保证2条指令的原子性，setnx后redis挂了，造成锁永远也解锁不了
+ *      2.解锁
+ *          正确：执行lua脚本语句，if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end
+ *          错误：判断key的value和期望的比较相等后，然后在删除key
+ *          原因：没有保证2条指令的原子性，在判断value相等后，刚好key过期然后其他地方获取到锁设置了新的value，然后导致删除了其他的锁
+ *      3.优点：
+ *          a.现成实现框架redisson（里面有watch dog监控key是否过期，如果过期则继续延长，防止执行业务时间过长，而key过期了）
+ *          b.性能好
+ *        缺点：
+ *          a.会一直自旋，耗cpu性能
+ *          b.主从模式下，如果获取到锁后主挂了，从变成主了，其他获取到锁了，而之前的主被拉起来后也有锁，
+ *              相对于有2个锁了，而zk分布式锁没有这个问题（强一致性），但是性能没有redis高
+ *              解决这个问题，官网提供了redlock（有多个lock服务，当一半数以上lock成功，认为成功）,但是性能不好
+ *              （redlock）https://cloud.tencent.com/developer/article/1431873
+ *  c.zk:
+ *      2.创建wirte_lock持久节点，顺序临时子节点
+ *      3.lock时候getchild（不需要监控，会有羊群效应）判断 临时最小节点是否是最小的
+ *      4.如果是则，获得锁，否则监听比自己小一个节点的exist，事件发生获得锁
+ *      5.unlock直接删除节点
+ *          优点：
+ *              不会出现redis锁，主从都获取到锁的情况（强一致性）
+ *              有Apache Curator封装Zookeeper操作的库
+ *          缺点：
+ *              性能没有redis lock好
  * 七.内存回收策略
  *   1.当使用内存达到一定大小的时候,会实行回收策略，默认关闭，max memory参数被注释了
  *   2.策略方式:
