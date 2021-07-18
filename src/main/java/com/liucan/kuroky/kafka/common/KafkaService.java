@@ -28,8 +28,24 @@ import java.util.Map;
  *  a.producer生产者,broker:kafka集群,consumer消费者,topic消息类型,cunsumer-group消费组
  *  b.partition:分片,一个topic包含多个partition
  *  c.leader:多个partiton里面的一个角色,consumer和producer只和leader交互
- *  d.follower:多个partiton里面的多个角色,只负责同步leader数据
+ *  d.follower:多个partiton里面的多个角色,只负责同步leader数据,不会和customer和producter交互，异步拉取数据
+ *      当leader挂掉之后，follower通过zk可以感知到，然后进行选举leader
+ *      在选举新leader时，一个基本的原则是，新的 leader 必须拥有旧 leader commit 过的所有消息，从isr列表中
+ *      的follower进行选举，isr列表里面是和leader同步的follower（副本落后leader在设置的时间内默认10秒）
  *  e.zookeeper:存储集群的信息
+ *
+ * 二.特点：
+ *  a.⾼吞吐、低延迟: kakfa 最⼤的特点点点点点点点点点就是收发消息⾮常快，kafka 每秒可以处理⼏⼗万条消息，它的最低延迟只有⼏毫秒
+ *  b.⾼伸缩性: 每个主题(topic) 包含多个分区(partition)，主题中的分区可以分布在不同的主机(broker)中
+ *  c.持久性、可靠性: Kafka 能够允许数据的持久化存储，消息被持久化到磁盘，并⽀持数据备份防⽌数据丢失
+ *  d.容错性: 允许集群中的节点失败，某个节点宕机，Kafka 集群能够正常⼯作
+ *  e.⾼并发: ⽀持数千个客户端同时读写
+ *
+ * 三.日志组成
+ *  a.partition进⼀步细分为了若⼲的segment，每个segment⽂件的最⼤⼤⼩相等
+ *  b.segment文件又包括了2个文件，.index文件和.log文件，log文件保存消息，.index文件保存了消息的offset和length
+ *  c.⼀个 Segment 中消息的存放是顺序存放的
+ *  d.Segment ⽂件越来越多，为了便于管理，将同⼀ Topic 的 Segment ⽂件都存放到⼀个或多个⽬录中，这些⽬录就是 Partition
  *
  * 二.producer生产消息
  *  a.写入方式:push 模式将消息发布到 broker,每条消息append到partition中,顺序写磁盘
@@ -75,7 +91,8 @@ import java.util.Map;
  *      2.后续操作
  * e.replication
  *  当 partition 对应的 leader 宕机时，需要从 follower 中选举出新 leader。
- *      在选举新leader时，一个基本的原则是，新的 leader 必须拥有旧 leader commit 过的所有消息
+ *      在选举新leader时，一个基本的原则是，新的 leader 必须拥有旧 leader commit 过的所有消息，从isr列表中
+ *      的follower进行选举，isr列表里面是和leader同步的follower（副本落后leader在设置的时间内默认10秒）
  *
  * 四.consumer 消费消息
  *  a.consumer group
@@ -121,6 +138,13 @@ import java.util.Map;
  *      2.一般要求设置4个参数来保证消息不丢失
  *       a.设置每个partition有多个follower
  *       b.必须要至少有一个follower同步后，leader才能提交
+ *
+ * 8.kafka为何速度快（⾼吞吐率实现）
+ *  a.分区多个parpation，每个parpation有master和flower
+ *  b.顺序读写，消息是不断的aof追加到文件结尾的
+ *  c.零拷贝，⽣产者、消费者对于kafka中消息的操作是采⽤零拷贝实现的，利⽤linux操作系统的 "零拷贝（zero-copy）
+ *    通过linux系统提供的sendfile，直接把内核缓冲区里的数据拷贝到 socket 缓冲区里，不再拷贝到用户态，在从用户态拷贝到socket缓冲区
+ *  d.批量发送和消息压缩
  */
 @Slf4j
 @Service
