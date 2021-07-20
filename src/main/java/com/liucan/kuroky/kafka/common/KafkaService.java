@@ -42,8 +42,8 @@ import java.util.Map;
  *  e.⾼并发: ⽀持数千个客户端同时读写
  *
  * 三.日志组成
- *  a.partition进⼀步细分为了若⼲的segment，每个segment⽂件的最⼤⼤⼩相等
- *  b.segment文件又包括了2个文件，.index文件和.log文件，log文件保存消息，.index文件保存了消息的offset和length
+ *  a.partition进⼀步细分为了若⼲的segment，每个segment逻辑⽂件的最⼤⼤⼩相等
+ *  b.segment逻辑文件又包括了2个文件，.index文件和.log文件，log文件保存消息，.index文件保存了消息的offset和length
  *  c.⼀个 Segment 中消息的存放是顺序存放的
  *  d.Segment ⽂件越来越多，为了便于管理，将同⼀ Topic 的 Segment ⽂件都存放到⼀个或多个⽬录中，这些⽬录就是 Partition
  *
@@ -161,14 +161,22 @@ import java.util.Map;
  *  https://cloud.tencent.com/developer/article/1165361
  *  a.delete默认
  *      1.自动清除7天之前，或者总大小大于多少之后的数据
- *      2.直接在segment文件（index,log）后面加.delete后缀，后台定时任务去删除.delete文件
+ *      2.直接在segment逻辑文件（index,log）后面加.delete后缀，后台定时任务去删除.delete文件
  *  b.compact
  *      1.不会删除数据，只是去重清理
  *      2.对应同一个partition下同一个segment里面，会对相同的key进行替换
  *      3.默认脏数据（重复的key的数据）达到了总数据segment的50%才会执行压缩清理
- *          生成一个新的segment文件，里面去掉老的重复的数据，老的文件加.delete后缀
+ *          生成一个新的segment逻辑文件，里面去掉老的重复的数据，老的文件加.delete后缀
  *      4.压缩过程，如果相同的key的value为null，则会删除该数据，可用于删除某个message数据
  *      5.适用于需要长时间保存某些业务数据的场景
+ *
+ * 十一.消费者同步⼿动提交
+ *  a.⾃动提交 可能会出现消息重复消费的情况
+ *  b.⼿动提交分类:
+ *      1.同步提交：consumer.commitSync()，自动提交上一次poll消息的offset
+ *      2.异步提交：consumer.commitAsync(callbacks);增加了消费者的吞吐量
+ *      3.同异步提交：异步提交会出现重复消费（消费出现了异常，未commit这次消息），可在异步callback
+ *          里面出现异常的时候手动同步提交
  */
 @Slf4j
 @Service
