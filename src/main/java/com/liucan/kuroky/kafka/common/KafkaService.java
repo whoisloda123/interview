@@ -47,6 +47,19 @@ import java.util.Map;
  *  c.⼀个 Segment 中消息的存放是顺序存放的
  *  d.Segment ⽂件越来越多，为了便于管理，将同⼀ Topic 的 Segment ⽂件都存放到⼀个或多个⽬录中，这些⽬录就是 Partition
  *
+ * 四.HW(high watermark):高水位
+ *  a.Consumer可以消费到的最⾼partition偏移量,因为leader写入到partiton里面，但是因为follower未同步，还未cimmit，不能消费
+ *  b.作用：
+ *      定义消息可⻅性，即⽤来标识分区下的哪些消息是可以被消费者消费的
+ *      帮助 Kafka 完成副本同步,保证leader和follower之间的数据⼀致性
+ *
+ * 五.发送的可靠性机制
+ *  a.acks=0:效率最⾼，吞吐量⾼，但可靠性最低。其可能会存在消息丢失的情况
+ *  b.acks=1:只要集群的 Leader 节点收到消息，⽣产者就会收到⼀个来⾃服务器的成功响应
+ *      该⽅式不能使producer确认其发送的消息是成功的，但可以确认消息发送是失败的
+ *  c.acks=all:当所有参与复制的节点全部收到消息时,才会返回
+ *      可靠性最⾼，很少出现消息丢失的情况。但可能会出现部分follower重复接收的情况，因为producer可能会超时重发
+ *
  * 二.producer生产消息
  *  a.写入方式:push 模式将消息发布到 broker,每条消息append到partition中,顺序写磁盘
  *  b.消息路由:发送消息时,根据分区算法找到一个paration,涉及到topic,paration,key,msg
@@ -59,8 +72,6 @@ import java.util.Map;
  *      3.followers从leader中pull消息,发送ack
  *      4.leader收到所有followers的ack后,提交commmin,然后返回producer,相当于要所有的followers都有消息才会commit
  * d.消息发送类型
- *      https://www.cnblogs.com/jasongj/p/7912348.html
- *      https://www.jianshu.com/p/5d889a67dcd3
  *      1.at-least-once:producer收到来自borker的确认消息,则任务发送成功,但可能会出现broker处理完消息了,但发送确认消息异常了
  *          producer会重试,导致broker接收2次
  *      2.at-most-once:不管producer发送消息返回超时或者失败,都不会重试
@@ -97,6 +108,7 @@ import java.util.Map;
  * 四.consumer 消费消息
  *  a.consumer group
  *      1.一个消息只能被 group 内的一个 consumer 所消费，且 consumer 消费消息时不关注 offset，最后一个 offset 由 zookeeper 保存。
+ *        后面版本是保存在集群的_consumer_offsets里面的，因为zk并不适合进⾏频繁的写更新
  *          但是多个 group 可以同时消费这个 partition
  *      2.当所有consumer的consumer group相同时，系统变成队列模式
  *      3.当每个consumer的consumer group都不相同时，系统变成发布订阅
@@ -123,28 +135,40 @@ import java.util.Map;
  *          消费线程太少：
  *      3.如何解决
  *
- *  七.如何保证消息不丢失不重复
+ * 七.如何保证消息不丢失不重复消费
  *  https://blog.csdn.net/weixin_38750084/article/details/82939435
  *  https://msd.misuland.com/pd/2884250068896974728
  *  https://www.e-learn.cn/content/qita/934559
+ *   a.不丢失
  *      1.消息丢失场景：
- *          同步发送：发出消息后，必须阻塞等待收到通知后，才发送下一条消息，配置ack为1（只保证leader写入成功就commit,如果leader挂了）
- *              解决：所有partition同步后才commit
- *          异步发送：一直往缓冲区写，然后批量发送，如果配置成缓冲池一满，就清空缓冲池里的消息，会丢失消息
- *              解决：不清空缓冲区，阻塞等待
- *      1.也可以，用Exactly once只且一次，消息不丢失不重复，只且消费一次。
+ *          a.ack设置为0或者1
+ *          b.producer配置的缓冲池满
+ *          c.设置 unclean.leader.election.enable = true，支持不清楚的选举，没有在isr列表里面的follower也可以选举
+ *          d.没有follower
+ *   b.不重复消费
+ *      1.改成手动消费，消费完后才提交offset
  *
- *      1.消费端弄丢了数据 关闭自动提交offset，在自己处理完毕之后手动提交offset，这样就不会丢失数据
- *      2.一般要求设置4个参数来保证消息不丢失
- *       a.设置每个partition有多个follower
- *       b.必须要至少有一个follower同步后，leader才能提交
+ * 八.rebalance
  *
- * 8.kafka为何速度快（⾼吞吐率实现）
+ * 九.kafka为何速度快（⾼吞吐率实现）
  *  a.分区多个parpation，每个parpation有master和flower
  *  b.顺序读写，消息是不断的aof追加到文件结尾的
  *  c.零拷贝，⽣产者、消费者对于kafka中消息的操作是采⽤零拷贝实现的，利⽤linux操作系统的 "零拷贝（zero-copy）
  *    通过linux系统提供的sendfile，直接把内核缓冲区里的数据拷贝到 socket 缓冲区里，不再拷贝到用户态，在从用户态拷贝到socket缓冲区
  *  d.批量发送和消息压缩
+ *
+ * 十.日志清理策略
+ *  https://cloud.tencent.com/developer/article/1165361
+ *  a.delete默认
+ *      1.自动清除7天之前，或者总大小大于多少之后的数据
+ *      2.直接在segment文件（index,log）后面加.delete后缀，后台定时任务去删除.delete文件
+ *  b.compact
+ *      1.不会删除数据，只是去重清理
+ *      2.对应同一个partition下同一个segment里面，会对相同的key进行替换
+ *      3.默认脏数据（重复的key的数据）达到了总数据segment的50%才会执行压缩清理
+ *          生成一个新的segment文件，里面去掉老的重复的数据，老的文件加.delete后缀
+ *      4.压缩过程，如果相同的key的value为null，则会删除该数据，可用于删除某个message数据
+ *      5.适用于需要长时间保存某些业务数据的场景
  */
 @Slf4j
 @Service
