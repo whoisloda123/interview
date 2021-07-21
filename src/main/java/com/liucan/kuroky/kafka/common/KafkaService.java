@@ -21,17 +21,16 @@ import java.util.Map;
 
 /**
  * @author liucan
- *  原理:https://www.cnblogs.com/xifenglou/p/7251112.html
- *      https://blog.csdn.net/qq_29186199/article/details/80827085
  *
  * 一.概念:
  *  a.producer生产者,broker:kafka集群,consumer消费者,topic消息类型,cunsumer-group消费组
  *  b.partition:分片,一个topic包含多个partition
  *  c.leader:多个partiton里面的一个角色,consumer和producer只和leader交互
- *  d.follower:多个partiton里面的多个角色,只负责同步leader数据,不会和customer和producter交互，异步拉取数据
- *      当leader挂掉之后，follower通过zk可以感知到，然后进行选举leader
- *      在选举新leader时，一个基本的原则是，新的 leader 必须拥有旧 leader commit 过的所有消息，从isr列表中
- *      的follower进行选举，isr列表里面是和leader同步的follower（副本落后leader在设置的时间内默认10秒）
+ *  d.follower:
+ *      1.多个partiton里面的多个角色,只负责同步leader数据,不会和customer和producter交互，异步拉取数据
+ *      2.当leader挂掉之后，follower通过zk可以感知到，然后进行选举leader,在选举新leader时，从isr列表中的follower进行选举(轮流坐庄)
+ *      3.isr列表里面是和leader同步的follower（副本落后leader在设置的时间内默认10秒）
+ *      4.Unclean Leader Election:控制是否isr为空的情况，还能否进行选举
  *  e.zookeeper:存储集群的信息
  *
  * 二.特点：
@@ -67,7 +66,7 @@ import java.util.Map;
  *      2.未指定 patition 但指定 key，通过对 key 的 value 进行hash 选出一个 patition
  *      3.patition 和 key 都未指定，使用轮询选出一个 patition
  * c.写入流程:
- *      1.producer 从zookeeper中找到该 partition 的 leader
+ *      1.producer 从controller(zookeeper中)找到该 partition 的 leader
  *      2.消息发送给leader,leader写入本地log
  *      3.followers从leader中pull消息,发送ack
  *      4.leader收到所有followers的ack后,提交commmin,然后返回producer,相当于要所有的followers都有消息才会commit
@@ -149,6 +148,18 @@ import java.util.Map;
  *      1.改成手动消费，消费完后才提交offset
  *
  * 八.rebalance
+ *  a.consumer group:多个consumer组成起来的一个组，共同消费topic所有消息，且一个topic的一个partition(想到于一条信息)只能被一个consumer消费
+ *  b.概念：⼀个 Consumer Group 下的所有 Consumer 如何达成⼀致，来分配订阅多个 Topic 的每个分区，达到均衡，效率最大
+ *  c.触发条件：
+ *      1.组内成员发生变化
+ *      2.订阅topic发生变化
+ *      3.订阅的topic的分区发生变化
+ *  d.消费分区分配算法
+ *      1.RangeAssignor:对某一个topic的partition，消费者总数和分区总数整除运算来获得跨度，将分区按照跨度平均分配，以保证分区尽可能均匀地分配给所有的消费者
+ *      2.RoundRobinAssignor：消费组内订阅的所有Topic的分区及所有消费者进⾏排序后尽量均衡的分配（RangeAssignor是针对单个Topic的分区进⾏排序分配的）
+ *  e.问题：
+ *      1.所有消费暂停，stw
+ *      2.Rebalance 速度慢：计是所有 Consumer 实例共同参与，全部重新分配所有分区
  *
  * 九.kafka为何速度快（⾼吞吐率实现）
  *  a.分区多个parpation，每个parpation有master和flower
@@ -156,6 +167,7 @@ import java.util.Map;
  *  c.零拷贝，⽣产者、消费者对于kafka中消息的操作是采⽤零拷贝实现的，利⽤linux操作系统的 "零拷贝（zero-copy）
  *    通过linux系统提供的sendfile，直接把内核缓冲区里的数据拷贝到 socket 缓冲区里，不再拷贝到用户态，在从用户态拷贝到socket缓冲区
  *  d.批量发送和消息压缩
+ *  e.读写性能， Kafka利⽤了操作系统本身的Page Cache，就是利⽤操作系统⾃身的内存⽽不是JVM空间内存
  *
  * 十.日志清理策略
  *  https://cloud.tencent.com/developer/article/1165361
@@ -171,7 +183,7 @@ import java.util.Map;
  *      5.适用于需要长时间保存某些业务数据的场景
  *
  * 十一.消费者同步⼿动提交
- *  a.⾃动提交 可能会出现消息重复消费的情况
+ *  a.⾃动提交：enable.auto.commit=true，每隔一段时间自动提交， 可能会出现消息重复消费的情况
  *  b.⼿动提交分类:
  *      1.同步提交：consumer.commitSync()，自动提交上一次poll消息的offset
  *      2.异步提交：consumer.commitAsync(callbacks);增加了消费者的吞吐量
