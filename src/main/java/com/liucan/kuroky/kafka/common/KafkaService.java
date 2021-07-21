@@ -87,22 +87,14 @@ import java.util.Map;
  *          b.事务:多个paratition的原子操作,发送批量消息到多个paratition要么全部成功要么全部失败
  *              实现方式:
  *
- * 三.broker保存消息
- *  a..存储方式:物理上把 topic 分成一个或多个 patition（对应 server.properties 中的 num.partitions=3 配置）
- *  ，每个 patition 物理上对应一个文件夹（该文件夹存储该 patition 的所有消息和索引文件）
- *  b.存储策略:无论消息是否被消费，kafka 都会保留所有消息
- *  c.topic创建
- *      1.controller 在 ZooKeeper 的 /brokers/topics 节点上注册 watcher，当 topic 被创建，则 controller
- *          会通过 watch 得到该 topic 的 partition/replica 分配
- *      2.controller从 /brokers/ids 读取当前所有可用的 broker 列表,然后选leader等等
- *  d.topic删除
- *      1.controller 在 zooKeeper 的 /brokers/topics 节点上注册 watcher，当 topic 被删除，
- *          则 controller 会通过 watch 得到该 topic 的 partition/replica 分配。
- *      2.后续操作
- * e.replication
- *  当 partition 对应的 leader 宕机时，需要从 follower 中选举出新 leader。
- *      在选举新leader时，一个基本的原则是，新的 leader 必须拥有旧 leader commit 过的所有消息，从isr列表中
- *      的follower进行选举，isr列表里面是和leader同步的follower（副本落后leader在设置的时间内默认10秒）
+ * 三.消息写⼊
+ *  2.当producer指定了要⽣产消息的topic后，其会向broker controller发送请求，请求当前topic中所有partition的leader列表地址
+ *  3.broker controller在接收到请求后，会从zk中查找到指定topic的所有partition的leader，并返回给producer
+ *  4.producer在接收到leader列表地址后，根据消息路由策略找到当前要发送消息所要发送的partition leader，然后将消息发送给该leader
+ *  5.leader将消息写⼊本地log，并通知ISR中的followers
+ *  6.ISR中的followers从leader中同步消息后向leader发送ACK
+ *  7.leader收到所有ISR中的followers的ACK后，增加HW，表示消费者已经可以消费到该位置了
+ *  8.若leader在等待的followers的ACK超时了，发现还有follower没有发送ACK，则会将该follower从ISR中清除，然后增加HW
  *
  * 四.consumer 消费消息
  *  a.consumer group
