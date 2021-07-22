@@ -121,7 +121,6 @@ import java.util.Map;
  *
  * 五.如何保证消息的有序性消费
  *  https://blog.csdn.net/bigtree_3721/article/details/80953197
- *  https://www.cnblogs.com/windpoplar/p/10747696.html
  *      1.一个topic，可以指定同一个key，这样消息只会发送到一个partition，但失去了集群优势
  *      2.在消费时，针对每个message不用启用多线程，否者一样会有错乱，针对partition的里面不同的key（不同的key根据分区算法，可能到同一个分区）
  *          的message，放到一个队列里面，顺序消费
@@ -136,8 +135,6 @@ import java.util.Map;
  *
  * 七.如何保证消息不丢失不重复消费
  *  https://blog.csdn.net/weixin_38750084/article/details/82939435
- *  https://msd.misuland.com/pd/2884250068896974728
- *  https://www.e-learn.cn/content/qita/934559
  *   a.不丢失
  *      1.消息丢失场景：
  *          a.ack设置为0或者1
