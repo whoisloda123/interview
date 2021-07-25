@@ -47,7 +47,7 @@ import java.util.Map;
  *  d.Segment ⽂件越来越多，为了便于管理，将同⼀ Topic 的 Segment ⽂件都存放到⼀个或多个⽬录中，这些⽬录就是 Partition
  *
  * 四.HW(high watermark):高水位
- *  a.Consumer可以消费到的最⾼partition偏移量,因为leader写入到partiton里面，但是因为follower未同步，还未cimmit，不能消费
+ *  a.Consumer可以消费到的最⾼partition偏移量,因为leader写入到partiton里面，但是因为follower未同步，还未commit，不能消费
  *  b.作用：
  *      定义消息可⻅性，即⽤来标识分区下的哪些消息是可以被消费者消费的
  *      帮助 Kafka 完成副本同步,保证leader和follower之间的数据⼀致性
@@ -69,7 +69,7 @@ import java.util.Map;
  *      1.producer 从controller(zookeeper中)找到该 partition 的 leader
  *      2.消息发送给leader,leader写入本地log
  *      3.followers从leader中pull消息,发送ack
- *      4.leader收到所有followers的ack后,提交commmin,然后返回producer,相当于要所有的followers都有消息才会commit
+ *      4.leader收到所有followers的ack后,提交commit,然后返回producer,相当于要所有的followers都有消息才会commit
  * d.消息发送类型
  *      1.at-least-once:producer收到来自borker的确认消息,则任务发送成功,但可能会出现broker处理完消息了,但发送确认消息异常了
  *          producer会重试,导致broker接收2次
@@ -112,21 +112,27 @@ import java.util.Map;
  *      3.Exactly once刚好一次,比较难
  *
  * 五.如何保证消息的有序性消费
- *  https://blog.csdn.net/bigtree_3721/article/details/80953197
  *      1.一个topic，可以指定同一个key，这样消息只会发送到一个partition，但失去了集群优势
  *      2.在消费时，针对每个message不用启用多线程，否者一样会有错乱，针对partition的里面不同的key（不同的key根据分区算法，可能到同一个分区）
  *          的message，放到一个队列里面，顺序消费
  *
- * 六.数据堆积
+ * 六.数据堆积(重要)
+ * https://cloud.tencent.com/developer/article/1583098
+ * https://blog.51cto.com/u_12473494/2420105
  *      1.查看消费堆积情况，bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group my-group
+ *          LogEndOffset 下一条将要被加入到日志的消息的位移
+ *          CurrentOffset 当前消费的位移
+ *          LAG 消息堆积量（LogEndOffset - CurrentOffset）
  *      2.出现场景
- *          重复消费：poll的数据业务处理时间不能超过kafka的max.poll.interval.ms，kafka0.10.2.1里面是300s
- *              如果超时了则会失败，这样下次会从新消费，又失败，这样会一直重复消费
- *          消费线程太少：
+ *          a.max.poll.interval.ms:消费者处理消息逻辑的最大时间,默认300000
+ *          b.max.poll.records 表示每次默认拉取消息条数，默认值为 500
+ *          c.poll的数据业务处理时间超过kafka的max.poll.interval.ms，如果超时了则会失败，这样下次会从新消费，又失败，这样会一直重复消费
+ *              而且多次之后会导致被认为该customer掉线，被踢出customer group，然后会reblance，导致stw
+ *          d.消费线程太少：
  *      3.如何解决
+ *          在max.poll.interval.ms和max.poll.records直接取个平衡点，避免出现消费者被频繁踢出消费组导致重平衡
  *
  * 七.如何保证消息不丢失不重复消费
- *  https://blog.csdn.net/weixin_38750084/article/details/82939435
  *   a.不丢失
  *      1.消息丢失场景：
  *          a.ack设置为0或者1
@@ -140,7 +146,7 @@ import java.util.Map;
  *  a.consumer group:多个consumer组成起来的一个组，共同消费topic所有消息，且一个topic的一个partition(想到于一条信息)只能被一个consumer消费
  *  b.概念：⼀个 Consumer Group 下的所有 Consumer 如何达成⼀致，来分配订阅多个 Topic 的每个分区，达到均衡，效率最大
  *  c.触发条件：
- *      1.组内成员发生变化
+ *      1.组内成员发生变化,当某个consumer卡住或者挂掉时
  *      2.订阅topic发生变化
  *      3.订阅的topic的分区发生变化
  *  d.消费分区分配算法
@@ -168,7 +174,7 @@ import java.util.Map;
  *      2.对应同一个partition下同一个segment里面，会对相同的key进行替换
  *      3.默认脏数据（重复的key的数据）达到了总数据segment的50%才会执行压缩清理
  *          生成一个新的segment逻辑文件，里面去掉老的重复的数据，老的文件加.delete后缀
- *      4.压缩过程，如果相同的key的value为null，则会删除该数据，可用于删除某个message数据
+ *      4.压缩过程，如果key的value为null，则会删除该数据，可用于删除某个message数据
  *      5.适用于需要长时间保存某些业务数据的场景
  *
  * 十一.消费者同步⼿动提交
@@ -178,6 +184,8 @@ import java.util.Map;
  *      2.异步提交：consumer.commitAsync(callbacks);增加了消费者的吞吐量
  *      3.同异步提交：异步提交会出现重复消费（消费出现了异常，未commit这次消息），可在异步callback
  *          里面出现异常的时候手动同步提交
+ *
+ *  十二.rocketMQ?
  */
 @Slf4j
 @Service
