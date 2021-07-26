@@ -126,11 +126,13 @@ import java.util.Map;
  *      2.出现场景
  *          a.max.poll.interval.ms:消费者处理消息逻辑的最大时间,默认300000
  *          b.max.poll.records 表示每次默认拉取消息条数，默认值为 500
- *          c.poll的数据业务处理时间超过kafka的max.poll.interval.ms，如果超时了则会失败，这样下次会从新消费，又失败，这样会一直重复消费
- *              而且多次之后会导致被认为该customer掉线，被踢出customer group，然后会reblance，导致stw
- *          d.消费线程太少：
+ *          c.poll的数据业务处理时间超过kafka的max.poll.interval.ms被认为customer掉线，被踢出customer group，然后会reblance，导致stw
+ *          d.手动提交offset，执行异常未提交commit，下次又重复消费
+ *          e.消费线程太少或消费者少
  *      3.如何解决
  *          在max.poll.interval.ms和max.poll.records直接取个平衡点，避免出现消费者被频繁踢出消费组导致重平衡
+ *          catch异常后提交
+ *          增加消费者
  *
  * 七.如何保证消息不丢失不重复消费
  *   a.不丢失
@@ -178,6 +180,7 @@ import java.util.Map;
  *      5.适用于需要长时间保存某些业务数据的场景
  *
  * 十一.消费者同步⼿动提交
+ * https://www.cnblogs.com/sodawoods-blogs/p/8969774.html
  *  a.⾃动提交：enable.auto.commit=true，每隔一段时间自动提交， 可能会出现消息重复消费的情况
  *  b.⼿动提交分类:
  *      1.同步提交：consumer.commitSync()，自动提交上一次poll消息的offset
