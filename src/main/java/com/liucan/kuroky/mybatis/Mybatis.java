@@ -35,6 +35,8 @@ package com.liucan.kuroky.mybatis;
  *      StatementHandler：sql处理
  *    生成代理类来做增强Interceptor处理
  *  4.打印sql日志，分页插件就是基于插件来实现的
+ *
+ *  https://github.com/liu844869663/mybatis-3
  */
 public interface Mybatis {
 }
