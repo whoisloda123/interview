@@ -24,6 +24,23 @@ package com.liucan.kuroky.mybatis;
  *  3.应用场景
  *      a.对于访问响应速度要求高，但是实时性不高的查询
  *      b.所以MyBatis的缓存存在一定的缺陷，且缓存的数据仅仅是保存在了本地内存中，对于当前高并发的环境下是无法满足要求的，所以我们通常不使用MyBatis的缓存
+ * 三.延迟加载
+ *  1.懒加载，是指在进行关联查询时,在真正调用的时候才去查询
+ *  2.需要通过resultMap标签中的association和collection子标签
+ *  3.MyBatis的延迟加载只是对关联对象的查询有延迟设置，对于主加载对象都是直接执行查询语句的
+ *
+ * 四.插件
+ *  1.继承Interceptor接口，重写intercept接口，和plugin(生成代理对象，直接调用Plugin.warp即可)
+ *  2.在mybatis-config.xml文件里面添加插件节点即可
+ *  3.通过动态代理对4个重要的接口:
+ *      Executor：执行器
+ *      ParameterHandler：参数处理
+ *      ResultSetHandler：结果处理
+ *      StatementHandler：sql处理
+ *    生成代理类来做增强Interceptor处理
+ *  4.打印sql日志，分页插件就是基于插件来实现的
+ *
+ *  https://github.com/liu844869663/mybatis-3
  */
 public interface Mybatis {
 }
