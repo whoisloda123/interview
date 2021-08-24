@@ -28,6 +28,7 @@ package com.liucan.kuroky.mybatis;
  *  1.懒加载，是指在进行关联查询时,在真正调用的时候才去查询
  *  2.需要通过resultMap标签中的association和collection子标签
  *  3.MyBatis的延迟加载只是对关联对象的查询有延迟设置，对于主加载对象都是直接执行查询语句的
+ *  4.通过Javassist/cglib为返回结果创建一个动态代理对象，调用该属性的getter方法时才加载数据
  *
  * 四.插件
  *  1.继承Interceptor接口，重写intercept接口，和plugin(生成代理对象，直接调用Plugin.warp即可)
