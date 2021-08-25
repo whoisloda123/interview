@@ -25,10 +25,16 @@ package com.liucan.kuroky.mybatis;
  *      a.对于访问响应速度要求高，但是实时性不高的查询
  *      b.所以MyBatis的缓存存在一定的缺陷，且缓存的数据仅仅是保存在了本地内存中，对于当前高并发的环境下是无法满足要求的，所以我们通常不使用MyBatis的缓存
  * 三.延迟加载
- *  1.懒加载，是指在进行关联查询时,在真正调用的时候才去查询
- *  2.需要通过resultMap标签中的association和collection子标签
+ *  1.懒加载，是指在进行关联查询时,在真正调用的时候才去查询，配置：
+ *  <settings>
+ *      #按需加载
+ * 	<setting name="lazyLoadingEnabled" value="true"/>
+ * 	#将积极加载修改为消极加载
+ * 	 <setting name="aggressiveLazyLoading" value="false"></setting>
+ * </settings>
+ *  2.需要通过resultMap标签中的association（一对一）和collection（一对多）标签来实现
  *  3.MyBatis的延迟加载只是对关联对象的查询有延迟设置，对于主加载对象都是直接执行查询语句的
- *  4.通过Javassist/cglib为返回结果创建一个动态代理对象，调用该属性的getter方法时才加载数据
+ *  4.通过Javassist/cglib为返回结果创建一个动态代理对象，调用该属性的getter方法时才加载对应数据（一对一或一对多数据)
  *
  * 四.插件
  *  1.继承Interceptor接口，重写intercept接口，和plugin(生成代理对象，直接调用Plugin.warp即可)
