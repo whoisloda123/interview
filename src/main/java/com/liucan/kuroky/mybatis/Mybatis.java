@@ -47,6 +47,9 @@ package com.liucan.kuroky.mybatis;
  *    生成代理类来做增强Interceptor处理
  *  4.打印sql日志，分页插件就是基于插件来实现的
  *
+ * 五.n+1问题
+ *  1.概念：你执行了一个单独的 SQL 语句来获取结果的一个列表（就是“+1”）。对列表返回的每条记录，你执行一个 select 查询语句来为每条记录加载详细信息（就是“N”）
+ *  2.在resultMap里面的嵌套查询出现，可以通过设置延迟加载来避免
  *  https://github.com/liu844869663/mybatis-3
  */
 public interface Mybatis {
