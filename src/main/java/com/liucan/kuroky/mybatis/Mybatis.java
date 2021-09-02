@@ -14,9 +14,12 @@ package com.liucan.kuroky.mybatis;
  *      b.如中间sqlSession去执行commit操作（执行插入、更新、删除),，则会被清除
  *      c.同一个sqlSession和查询条件则不用查数据库
  *      e.mybatis默认一级缓存没有提供直接的方法禁止，但是可以通过设置一级缓存级别设置为statement，可以达到禁用一级缓存的效果
- *          因为如果是缓存级别为STATEMENT的话，则会查询完后清空一级缓存
+ *          缓存级别为STATEMENT的话，则会查询完后清空一级缓存
+ *      f.在多个 SqlSession 会话时，可能导致数据的不一致性，某一个 SqlSession 更新了数据而其他 SqlSession 无法获取到更新后的数据
+ *      ，出现数据不一致性，通常选择“关闭”一级缓存
  *  2.二级缓存
- *      a.Mapper（namespace）级别的缓存。多个SqlSession去操作同一个Mapper的sql语句，多个SqlSession可以共用二级缓存，二级缓存是跨SqlSession的
+ *      a.Mapper（namespace）级别的缓存。多个SqlSession去操作同一个Mapper的sql语句，多个SqlSession可以共用二级缓存，将一个 XML 映射文件中定义的缓存对象放在全局对象中
+ *      二级缓存是跨SqlSession的
  *      b.如果调用相同namespace下的mapper映射文件中的增删改SQL，并执行了commit操作。此时会清空该namespace下的二级缓存
  *      c.<setting name="cacheEnabled" value="true"/>总开关开启，然后在mapper里面加<cache></cache>
  *     问题:
