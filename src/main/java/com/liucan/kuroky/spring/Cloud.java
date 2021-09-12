@@ -1,4 +1,4 @@
-package com.liucan.kuroky.springclould;
+package com.liucan.kuroky.spring;
 
 /**
  *
