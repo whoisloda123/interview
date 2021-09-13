@@ -7,9 +7,28 @@ package com.liucan.kuroky.spring;
  *      b.filter
  *      c.初始化参数等
  *
- * 二.容器初始化
- *  1.容器初始化过程会调用servlet的init接口来初始化servlet
- *      a.
+ * 二.mvc关键类和相关配置
+ *  1.概念
+ *      a.Filter
+ *      b.HandlerInterceptor
+ *      c.HandlerMethodArgumentResolver
+ *      d.HandlerMethodReturnValueHandler
+ *      e.HttpMessageConverter
+ *      f.HandlerExceptionResolver
+ *      g.RequestMappingHandlerMapping
+ *      h.RequestMappingHandlerAdapter
+ *      i.ServletInvocableHandlerMethod
+ *      j.DispatcherServlet
+ *      k.RequestBodyAdvice/ResponseBodyAdvice
+ *  2·配置流程
+ *
+ * 二.servlet初始化（init方法）
+ *  1.时机：容器初始化或者第一次收到请求（通过初始化参数配置）
+ *  2.配置加载
+ *      a.通过EnableWebMvc注解添加
+ *  2.流程
+ *      a.从servlet context里面通过key获取自定义的applicationContext，如果未获取到则创建并调用refresh来创建ioc，而spring boot则
+ *          是用自定义的applicationContext
  *      b.
  *      c.
  *
