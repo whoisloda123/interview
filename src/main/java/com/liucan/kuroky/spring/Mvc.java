@@ -36,7 +36,7 @@ package com.liucan.kuroky.spring;
  *      k.RequestBodyAdvice/ResponseBodyAdvice
  *          HttpMessageConverter拦截器
  *      l.ViewResolver
-            通过url找到对应的view
+            通过 view name 找到对应的 view 视图
 
  *  2·配置流程
  *      a.通过 EnableWebMvc 来引入 DelegatingWebMvcConfiguration 添加mvc配置，该类会将mvc关键类注入到ioc里面如
@@ -51,6 +51,19 @@ package com.liucan.kuroky.spring;
  *      b.从 applicationContext 获取 MultipartResolver HandlerMapping HandlerAdapters HandlerExceptionResolvers 等
  *
  * 三.servlet.service方法流程（重点）
+ *  1.检查是否是表单请求，是则用 multipartResolver 转换为 MultipartHttpServletRequest
+ *  2.通过 HandlerMapping 找到对应的 HandlerExecutionChain（HandlerInterceptor 和 HandlerMethod）
+ *  3.调用 HandlerInterceptor.preHandle
+ *  4.调用 RequestMappingHandlerAdapter.handle 传入 HandlerMethod 开始真正调用 controller 方法
+ *      a.将 HandlerMethod 封装成 ServletInvocableHandlerMethod 调用真正方法
+ *      b.HandlerMethodArgumentResolver 来设置参数
+ *      c.调用真正的方法
+ *      d.HandlerMethodReturnValueHandler 来处理返回值
+ *  5.调用 HandlerInterceptor.postHandle
+ *  6.处理返回结果或异常
+ *      a.如果返回view name 则通过 ViewResolver 找到对应的 view 视图
+ *      b.如果抛出异常，则通过 HandlerExceptionResolver 处理异常
+ *  7.获取到view视图之后，调用 HandlerInterceptor.afterCompletion
  *
  * 三.filter和HandlerInterceptor区别
  *  1.filter是tomcat提供的，过滤了才会走到servlet.service方法
