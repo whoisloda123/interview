@@ -7,6 +7,13 @@ package com.liucan.kuroky.spring;
  *      b.filter
  *      c.初始化参数等
  *
+ * 二.servlet初始化（init方法）
+ *  1.时机：容器初始化或者第一次收到请求（通过初始化参数配置）
+ *  2.流程
+ *      a.从servlet context里面通过key获取自定义的applicationContext，如果未获取到则创建并调用refresh来创建ioc，而spring boot则
+ *          是用自定义的applicationContext
+ *      b.从 applicationContext 获取 MultipartResolver HandlerMapping HandlerAdapters HandlerExceptionResolvers 等设置给 servlet
+ *
  * 二.mvc关键类和相关配置
  *  1.概念:
  *      a.Filter
@@ -24,18 +31,20 @@ package com.liucan.kuroky.spring;
  *          1.处理 controller 方法异常，通过 @ControllerAdvice 和 @Exception
  *          2.将异常和方法保存map，然后通过异常找到对应处理方法，将其封装为 ServletInvocableHandlerMethod.invokeAndHandle 来进行调用
  *      g.RequestMappingHandlerMapping
- *          通过请求找到对应的 HandlerExecutionChain（HandlerInterceptor 和 HandlerMethod）
+ *          通过请求找到对应的处理器 HandlerExecutionChain（HandlerInterceptor 和 HandlerMethod）
  *      h.RequestMappingHandlerAdapter
- *          通过 RequestMappingHandlerMapping 获取的 HandlerMethod 和请求封装成 ServletInvocableHandlerMethod 来进行调用
- *      i.ServletInvocableHandlerMethod
+ *          处理适配器，通过 RequestMappingHandlerMapping 获取的 HandlerMethod 和请求封装成 ServletInvocableHandlerMethod 来进行调用
+ *      i.HandlerMethod
+ *          封装的 controller 方法， 在 RequestMappingHandlerMapping 初始化的时候会将所有的 controller bean 里面封装为 url 对应的 HandlerMethod
+ *      j.ServletInvocableHandlerMethod
  *          1.真正调用 controller 方法的类，HandlerExceptionResolver 也会组装为该类
  *          2.invokeAndHandler 方法会调用 HandlerMethodArgumentResolver 设置参数， 调用真正方法， HandlerMethodReturnValueHandler 来
  *            处理返回值
- *      j.DispatcherServlet
+ *      k.DispatcherServlet
  *          处理请求
- *      k.RequestBodyAdvice/ResponseBodyAdvice
+ *      l.RequestBodyAdvice/ResponseBodyAdvice
  *          HttpMessageConverter拦截器
- *      l.ViewResolver
+ *      m.ViewResolver
             通过 view name 找到对应的 view 视图
 
  *  2·配置流程
@@ -43,18 +52,11 @@ package com.liucan.kuroky.spring;
  *        RequestMappingHandlerMapping，RequestMappingHandlerAdapter
  *      b.外部直接继承 WebMvcConfigurer 来配置即可
  *
- * 二.servlet初始化（init方法）
- *  1.时机：容器初始化或者第一次收到请求（通过初始化参数配置）
- *  2.流程
- *      a.从servlet context里面通过key获取自定义的applicationContext，如果未获取到则创建并调用refresh来创建ioc，而spring boot则
- *          是用自定义的applicationContext
- *      b.从 applicationContext 获取 MultipartResolver HandlerMapping HandlerAdapters HandlerExceptionResolvers 等
- *
  * 三.servlet.service方法流程（重点）
  *  1.检查是否是表单请求，是则用 multipartResolver 转换为 MultipartHttpServletRequest
- *  2.通过 HandlerMapping 找到对应的 HandlerExecutionChain（HandlerInterceptor 和 HandlerMethod）
+ *  2.通过 HandlerMapping 找到对应的处理器 HandlerExecutionChain（HandlerInterceptor 和 HandlerMethod）
  *  3.调用 HandlerInterceptor.preHandle
- *  4.调用 RequestMappingHandlerAdapter.handle 传入 HandlerMethod 开始真正调用 controller 方法
+ *  4.调用处理器适配器 RequestMappingHandlerAdapter.handle 传入 HandlerMethod 开始真正调用 controller 方法
  *      a.将 HandlerMethod 封装成 ServletInvocableHandlerMethod 调用真正方法
  *      b.HandlerMethodArgumentResolver 来设置参数
  *      c.调用真正的方法
