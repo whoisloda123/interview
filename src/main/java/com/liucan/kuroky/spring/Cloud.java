@@ -22,6 +22,10 @@ package com.liucan.kuroky.spring;
  *
  * 4.spring事务传播机制：https://segmentfault.com/a/1190000020386113
  *
+ * 5.eureka
+ *  a.Eureka服务器没有后端存储，但是注册表中的服务实例都必须发送心跳线以保持其注册更新（因此可以在内存中完成）,
+ *      客户端还具有eureka注册的内存缓存（因此，他们不必为注册表提供每个服务请求）。
+ *
  * @author liucan
  * @date 5/22/21
  */
