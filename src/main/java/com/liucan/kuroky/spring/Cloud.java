@@ -21,6 +21,7 @@ package com.liucan.kuroky.spring;
  * 3.could hystrix:https://zhuanlan.zhihu.com/p/150889569
  *
  * 4.spring事务传播机制：https://segmentfault.com/a/1190000020386113
+ * 5.open feign https://segmentfault.com/a/1190000039889836
  *
  * 5.eureka
  *  a.Eureka服务器没有后端存储，但是注册表中的服务实例都必须发送心跳线以保持其注册更新（因此可以在内存中完成）,
