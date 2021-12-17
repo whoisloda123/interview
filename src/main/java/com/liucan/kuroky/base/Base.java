@@ -93,10 +93,9 @@ public interface Base {
      *      e.物理视图，关注的是如何部署机器和网络来配合软件达到可用性，运维人员角度，
      *
      *  82.为什么重写equals必须重写hashcode
-     *  https://www.cnblogs.com/wang-meng/p/7501378.html
-     *      a.通用约定，概论上来说，既然对象都相等了，hashcode肯定也要相等才符合逻辑
-     *      b.hashMap里面就是基于该思想来的，如果重新了equals，但没有重写hashcode会出现问题
-     *      c.效率问题，先用hashcode（做数字运算）做出一部分筛选，然后在比较equals
+     *      a.主要是为了提高性能，先比较hashcode，如果不相等，那真的不相等
+     *      b.如果相等，则对象也有可能不相同，再比较equals来判断对象是否相等
+     *      b.hashMap里面就是基于该思想来的，如果key的hashcode相等，还会判断通过key的equals来判断对象是否相等
      *
      *  86.http缓存
      *  https://www.jianshu.com/p/227cee9c8d15
