@@ -21,11 +21,25 @@ package com.liucan.kuroky.other;
  *     <li>学习新技术，如 flink</li>
  * </ol>
  *
- * 面试主要事项：
+ * ms主要事项：
  * <ol>
- *     <li>不露痕迹地说出面试官爱听的话</li>
- *     <li>一定要主动，说出亮点，面试官没有义务挖掘你的亮点</li>
- *     <li>引导面试官朝你的优势地方去</li>
+ *     <li>不露痕迹地说出msg爱听的话</li>
+ *     <li>一定要主动，说出亮点，msg没有义务挖掘你的亮点</li>
+ *     <li>引导msg朝你的优势地方去</li>
+ * </ol>
+ * 项目：
+ * <ol>
+ *     <li>重构bfc系统，微服务化，引入 spring cloud</li>
+ *     <ul>
+ *         <li>nginx -> spring cloud gateway -> 转发到对应的服务去</li>
+ *         <li>使用 nacos 的注册中心和配置中心</li>
+ *         <li>bfc系统</li>
+ *         <li>规则西腾</li>
+ *     </ul>
+ *     <li>tsa-web</li>
+ *     <li>tsap监控服务</li>
+ *     <li>配置同步</li>
+ *     <li>对威胁情报库优化</li>
  * </ol>
  * @author liucan
  * @version 2021/12/16
