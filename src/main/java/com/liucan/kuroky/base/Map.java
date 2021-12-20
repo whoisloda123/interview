@@ -26,21 +26,6 @@ package com.liucan.kuroky.base;
  * 三.获取size的实现方式类似于LongAdder实现方式，比CAS效率要高一些
  * @author liucan
  * @date 5/24/21
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 public interface Map {
 }

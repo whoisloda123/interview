@@ -29,20 +29,30 @@ package com.liucan.kuroky.other;
  * </ol>
  * 项目：
  * <ol>
- *     <li>重构bfc系统，微服务化，引入 spring cloud</li>
+ *     <li>优化 bfc 系统，微服务化，引入 spring cloud，放入 docker 里面运行</li>
  *     <ul>
  *         <li>nginx -> spring cloud gateway -> 转发到对应的服务去</li>
- *         <li>使用 nacos 的注册中心和配置中心</li>
+ *         <li>使用 nacos 的注册中心和配置中心,通过 open feign 做 rpc， ribbon 做负载均衡， hystrix 当做熔断</li>
  *         <li>bfc系统</li>
- *         <li>规则西腾</li>
+ *         <li>bfc-device-api，bfc-device-ping</li>
  *     </ul>
+ *     <li>具体步骤：</li>
+ *     <li>
+ *         <li>先改成 gradle 多模块，将依赖的公共且和业务没有关系的剥离出一个jar</li>
+ *         <li>先将业务比较简单的剥离出来，如大屏展示，</li>
+ *     </li>
  *     <li>tsa-web</li>
  *     <li>tsap监控服务</li>
  *     <li>配置同步</li>
  *     <li>对威胁情报库优化</li>
+ *     <li>第三方推送</li>
+ * </ol>
+ * 重构项目注意事项点或步骤：
+ * <ol>
+ *     <li>先将</li>
  * </ol>
  * @author liucan
  * @version 2021/12/16
  */
-public class Xiangmu1 {
+public class Xm1 {
 }

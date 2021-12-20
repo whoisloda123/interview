@@ -4,7 +4,7 @@ package com.liucan.kuroky.other;
  * @author liucan
  * @version 19-7-29
  */
-public class XiangMu {
+public class XM {
     /*
      *
      *
