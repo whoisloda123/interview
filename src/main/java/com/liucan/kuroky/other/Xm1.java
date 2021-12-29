@@ -26,7 +26,7 @@ package com.liucan.kuroky.other;
  * 依赖 mysql， redis， es， kafka，flink，clickhouse 等第三方组件
  * a.优化中心系统:
  * <p>
- * 之前是单机系统，代码量多且模块单一，业务复杂，扩展新业务不灵活，部署不方便需要对其整体包括框架，部署，打包进行优化。
+ * 之前是单机系统，代码量多且模块单一，业务复杂，扩展新业务不灵活，部署不方便需要对其整体包括框架，业务，部署，打包进行优化。
  * <p>对框架和部署进行优化：
  * <ol>
  *     <li>微服务化，引入 spring cloud，使用 nacos 的注册中心和配置中心,通过 open feign 做 rpc， ribbon 做负载均衡，
@@ -68,7 +68,8 @@ package com.liucan.kuroky.other;
  * </ul>
  * 遇到的问题和难点：
  * <ol>
- *     <li>主要问题是</li>
+ *     <li>其实制定计划，评估可行性等，主要难点是对很复杂的业务进行优化</li>
+ *     <li>在优化的过程中，一定要把握住主要流程，不能被小细节或比较难的点卡主，主要是可能需要改的东西太多了</li>
  * </ol>
  * @author liucan
  * @version 2021/12/16
