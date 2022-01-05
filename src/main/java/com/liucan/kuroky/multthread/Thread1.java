@@ -99,7 +99,7 @@ import java.util.concurrent.atomic.LongAdder;
  *      5）若是因signal被唤醒，就自旋获取锁；否则处理中断异常
  *    4.CAS和LongAdder
  *       https://zhuanlan.zhihu.com/p/269240636
- *     a.在高并发情况下LongAdder效率比CAS要快很多，因为CAS多个线程在同时竞争一个对象，而LongAdder竞争多个对象
+ *     a.在高并发情况下 LongAdder 效率比 CAS 要快很多，因为 CAS 多个线程在同时竞争一个对象，而 LongAdder 竞争多个对象
  *     b.LongAdder里面有base变量和Cell数组，当没有发生竞争直接cas更新base，否者创建长度为2的cell数组，hash找到对应数组index，cas新增cell[index]里面的个数
  *     c.如果发送hash冲突则对hash值rehash
  *     d.扩容数组不能超过最大cpu数，因为真正最大的并发数就是cpu数，大小就是base和cell数组里面个数加起来

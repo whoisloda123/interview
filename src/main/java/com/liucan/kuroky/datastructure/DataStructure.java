@@ -17,7 +17,6 @@ public interface DataStructure {
      *      d.ArrayList实现了Serializable接口（ObjectOutputStream,ObjectInputStream操作类）,序列化writeObject先写入size，再写入元素
      *      e.CopyOnWrite（COW，写时复制）
      *      参考：https://www.cnblogs.com/dolphin0520/p/3938914.html
-     *          https://yq.aliyun.com/articles/665359
      *          1.CopyOnWriteArrayList
      *             a.是Vector另外一种线程安全的高效list,ArrayList对应的安全同步容器
      *             b.修改时add，set等加锁，复制出一个新的数组进行操作，完成后将数组指针指向新的数组
