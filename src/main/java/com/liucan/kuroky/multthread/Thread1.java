@@ -61,8 +61,9 @@ import java.util.concurrent.atomic.LongAdder;
  *      c.wait后，会释放当前锁，会释放cpu时间片，暂停当前线程，直到被notify/notifyAll通知
  *  4.ThreadLocal：https://zhuanlan.zhihu.com/p/102571059
  *      1.ThreadLocal里面是保存的是map（当前线程对应的弱引用key，对应value）
- *      2.内存泄漏的原因：弱引用key被jvm回收之后，key为空了，但是value还在，但是没有能够获取到value的地方了，导致内存泄露
- *      3.为什么使用弱引用而不是强引用：如果没有手动删除，ThreadLocal不会被回收，导致Entry内存泄漏
+ *      2.内存泄漏的原因：弱引用key被jvm回收之后，key为空了，但是value还在，而在当前线程value还存在着强引用，只有thead线程退出以后,value的强引用链条才会断掉
+ *      3.当key为null，在下一次ThreadLocalMap调用set(),get()，remove()方法的时候会被清除value值
+ *      4.为什么使用弱引用而不是强引用：因为ThreadLocalMap还持有ThreadLocal的强引用，如果没有手动删除，ThreadLocal不会被回收，导致Entry内存泄漏
  * 七.锁分类
  *      a.公平锁/非公平锁：是否按照申请的顺序来获得锁,通过ReentrantLock构造函数来
  *          1.ReentrantLock构造函数来制定
