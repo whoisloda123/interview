@@ -7,7 +7,7 @@ import java.util.concurrent.*;
  * https://blog.csdn.net/qq_35181209/article/details/77434378
  *  a.ArrayBlockingQueue,一个ReentrantLock+同一个ReentrantLock对应的2个conditional
  *  b.LinkedBlockingQueue,2个ReentrantLock（put lock和 take lock）+对应的conditional,AtomicInteger来记录队列大小
- *   入队（操作尾部）和出队（操作头部）不相关联，没有必要用2个锁，提高性能
+ *  提高性能,入队操作其实操作的只有队尾引用last，并且没有牵涉到head。而出队操作其实只针对head，和last没有关系, 入队和出队的操作完全不需要公用一把锁
  * 二.DelayQueue
  *  a.DelayQueue队列中每个元素都有个过期时间，并且队列是个优先级队列，当从队列获取元素时候，只有过期元素才会出队列
  *  b.通过Condition的await
